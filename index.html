@@ -9,11 +9,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Fonts -->
+    <!-- Base Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Elegant Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet"> 
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"> 
+    
+    <!-- Picture Glow (Cheesy) Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Elegant Glow (Adler) Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
@@ -24,7 +30,7 @@
 
     <style>
         /* =========================================
-           BASIS & LAYOUT
+           BASIS STYLES
            ========================================= */
         html, body {
             margin: 0;
@@ -38,7 +44,7 @@
             transition: background-color 0.5s ease, color 0.5s ease;
         }
 
-        /* Hintergrund-Container Basis */
+        /* Hilfsklassen für Sichtbarkeit der Hintergründe */
         .bg-layer {
             position: fixed;
             top: 0; 
@@ -47,7 +53,7 @@
             height: 100%; 
             z-index: 0; 
             pointer-events: none;
-            display: none; /* Standardmäßig aus */
+            display: none; 
         }
 
         /* Matrix Canvas */
@@ -55,18 +61,25 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             z-index: 0; 
             pointer-events: none;
-            display: block; /* Standard an */
+            display: block; 
         }
 
         /* Content Layer */
         main, #view-classic, #view-card { position: relative; z-index: 10; }
         
-        /* UI Controls */
+        /* UI Controls (Top Right) */
         #ui-controls { 
             z-index: 100; 
             position: fixed; top: 30px; right: 30px;
             display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+            transition: top 0.3s ease;
         }
+        
+        /* Im Classic Mode Buttons etwas tiefer, damit sie nicht über der Nav liegen */
+        body[data-layout="classic"] #ui-controls {
+            top: 100px;
+        }
+
         #theme-switcher { 
             z-index: 100; 
             position: fixed; bottom: 30px; right: 30px;
@@ -81,9 +94,16 @@
         }
         .ui-badge:hover { background: rgba(255, 255, 255, 0.2); box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
 
-        /* Layout Switching */
-        [data-layout="card"] #view-classic { display: none; }
-        [data-layout="classic"] #view-card { display: none; }
+        /* --- LAYOUT SWITCHING LOGIC (Bugfixes) --- */
+        
+        /* 1. Container Visibility */
+        [data-layout="card"] #view-classic { display: none !important; }
+        [data-layout="classic"] #view-card { display: none !important; }
+        
+        /* 2. Header Visibility Safety Rule */
+        body[data-layout="card"] header { display: none !important; }
+        
+        /* 3. Body Display Mode */
         [data-layout="classic"] body { display: block; overflow-y: auto; }
         [data-layout="card"] body { display: flex; flex-direction: column; align-items: center; }
 
@@ -99,7 +119,7 @@
         }
         #view-card .glass-panel { border-radius: 2.5rem; overflow: hidden; }
         
-        /* Matrix Noise Texture Default */
+        /* Matrix Noise Texture */
         .glass-panel::before {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.07; pointer-events: none; z-index: 0;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
@@ -129,7 +149,7 @@
         }
         .group:hover .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
 
-        /* Animation Keyframes */
+        /* Animations */
         @keyframes callPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); transform: scale(1); } 70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); transform: scale(1.02); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1); } }
         .call-btn-anim { animation: callPulse 2s infinite; }
         .call-btn-anim:hover { animation: none; transform: scale(1.05); }
@@ -146,10 +166,10 @@
 
 
         /* =========================================
-           THEME OVERRIDES & ASSETS
+           THEME OVERRIDES
            ========================================= */
 
-        /* 1. ELEGANT (Violett/Gold) */
+        /* 1. ELEGANT (Standard) */
         [data-theme="elegant"] body { background: radial-gradient(circle at top, #6b21a8 0%, #1e1b4b 100%); }
         [data-theme="elegant"] #c { display: none !important; }
         [data-theme="elegant"] .bg-layer.elegant { display: block; }
@@ -160,20 +180,24 @@
 
         [data-theme="elegant"] .glass-panel { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(192, 132, 252, 0.2); box-shadow: 0 25px 50px -12px rgba(46, 16, 101, 0.5); }
         [data-theme="elegant"] .glass-panel::before { display: none; }
-        [data-theme="elegant"] h1, [data-theme="elegant"] h2 { background: linear-gradient(to bottom right, #fff9e6, #ffd700, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        [data-theme="elegant"] .glass-btn, [data-theme="elegant"] button[type="submit"] { background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: #fff; }
-        [data-theme="elegant"] .text-cyan-300 { color: #fbbf24 !important; }
+        [data-theme="elegant"] .glass-panel::after { content: ''; position: absolute; top: -50%; left: -150%; width: 50%; height: 200%; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent); transform: rotate(30deg); animation: panelShine 15s infinite ease-in-out; opacity: 1; pointer-events: none; z-index: 1; }
+        [data-theme="elegant"] h1, [data-theme="elegant"] h2 { background: linear-gradient(to bottom right, #fff9e6, #ffd700, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        [data-theme="elegant"] .bg-gradient-to-tr { background: radial-gradient(circle at center, #581c87, #3b0764) !important; border: 1px solid rgba(255, 215, 0, 0.3); box-shadow: 0 0 20px rgba(147, 51, 234, 0.4); }
+        [data-theme="elegant"] button[type="submit"] { background: linear-gradient(135deg, #ffd700, #b8860b) !important; border: 1px solid rgba(255, 255, 255, 0.2); color: #000 !important; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+        [data-theme="elegant"] .glass-btn { background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: #fff; }
+        [data-theme="elegant"] .glass-btn:hover { background: rgba(212, 175, 55, 0.25); border-color: rgba(212, 175, 55, 0.6); box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
+        [data-theme="elegant"] .text-cyan-300, [data-theme="elegant"] .text-indigo-300, [data-theme="elegant"] .text-cyan-400, [data-theme="elegant"] .text-indigo-400, [data-theme="elegant"] .text-pink-400 { color: #fbbf24 !important; text-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
+        [data-theme="elegant"] .bg-cyan-500\/10, [data-theme="elegant"] .bg-indigo-500\/20, [data-theme="elegant"] .bg-cyan-500\/20, [data-theme="elegant"] .bg-pink-500\/20, [data-theme="elegant"] .bg-emerald-500\/20 { background-color: rgba(147, 51, 234, 0.15) !important; border-color: rgba(233, 213, 255, 0.2) !important; color: #d8b4fe !important; }
+        [data-theme="elegant"] .bg-emerald-500 { background-color: #ffd700 !important; box-shadow: 0 0 10px #ffd700; }
         [data-theme="elegant"] .ui-badge { background: rgba(88, 28, 135, 0.6); border-color: rgba(216, 180, 254, 0.4); color: #e9d5ff; }
 
 
-        /* 2. GLOW (Picture Glow / Cheesy) */
+        /* 2. GLOW */
         [data-theme="glow"] body { background-color: #000000; font-family: 'Inter', sans-serif; }
         [data-theme="glow"] #c { display: none !important; }
         [data-theme="glow"] .bg-layer.glow { display: block; }
-        
         .bg-layer.glow .glow-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.6) saturate(1.1); }
         .bg-layer.glow .glow-overlay-inner { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
-
         [data-theme="glow"] .glass-panel { border: 2px solid #DC2626; box-shadow: 0 0 50px rgba(220, 38, 38, 0.5); background: linear-gradient(160deg, rgba(20, 20, 20, 0.85) 0%, rgba(5, 5, 5, 0.9) 100%); }
         [data-theme="glow"] .glass-panel::before, [data-theme="glow"] .glass-panel::after { display: none; }
         [data-theme="glow"] h1 { color: #DC2626; -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1); font-family: 'Oswald', sans-serif; text-transform: uppercase; }
@@ -182,14 +206,12 @@
         [data-theme="glow"] .ui-badge { background: rgba(220, 38, 38, 0.6); border-color: #ef4444; }
 
 
-        /* 3. ADLER (Elegant Glow) */
+        /* 3. ADLER */
         [data-theme="adler"] body { background-color: #050505; font-family: 'Inter', sans-serif; }
         [data-theme="adler"] #c { display: none !important; }
         [data-theme="adler"] .bg-layer.adler { display: block; }
-        
         .bg-layer.adler .adler-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.3) contrast(1.2); }
         .bg-layer.adler .adler-overlay-inner { position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); }
-
         [data-theme="adler"] .glass-panel { background-color: rgba(18, 18, 18, 0.85); border: 1px solid rgba(212, 175, 55, 0.4); }
         [data-theme="adler"] .glass-panel::before, [data-theme="adler"] .glass-panel::after { display: none; }
         [data-theme="adler"] h1 { font-family: 'Cinzel', serif; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
@@ -198,30 +220,26 @@
         [data-theme="adler"] .ui-badge { background: rgba(212, 175, 55, 0.2); border-color: #D4AF37; color: #D4AF37; }
 
 
-        /* 4. GLASS (Gradient) */
+        /* 4. GLASS */
         [data-theme="glass"] body { background-color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; }
         [data-theme="glass"] #c { display: none !important; }
         [data-theme="glass"] .bg-layer.glass { display: block; }
-        
         .bg-layer.glass .glass-blob { position: fixed; filter: blur(80px); z-index: -1; opacity: 0.8; animation: float 10s infinite alternate ease-in-out; }
         .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #4f46e5; }
         .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #06b6d4; }
         .blob-3 { top: 40%; left: 40%; width: 300px; height: 300px; background: #ec4899; opacity: 0.6; }
-
         [data-theme="glass"] .glass-panel { background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)); border: 1px solid rgba(255, 255, 255, 0.18); }
         [data-theme="glass"] .glass-panel::after { display: none; }
         [data-theme="glass"] .text-cyan-300 { color: #22d3ee !important; }
         [data-theme="glass"] .ui-badge { background: rgba(6, 182, 212, 0.2); border-color: rgba(6, 182, 212, 0.4); color: #22d3ee; }
 
 
-        /* 5. PICGLASS (New Bright) */
+        /* 5. PICGLASS */
         [data-theme="picglass"] body { background-color: #f0f0f0; }
         [data-theme="picglass"] #c { display: none !important; }
         [data-theme="picglass"] .bg-layer.picglass { display: block; }
-        
         .bg-layer.picglass .picglass-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.85); }
         .bg-layer.picglass .picglass-overlay-inner { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.1); }
-
         [data-theme="picglass"] .glass-panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(25px); }
         [data-theme="picglass"] .glass-panel::before, [data-theme="picglass"] .glass-panel::after { display: none; }
         [data-theme="picglass"] h1, [data-theme="picglass"] p { text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
@@ -261,11 +279,11 @@
 
     <!-- UI CONTROLS (z-index 100) -->
     <div id="ui-controls">
-        <button id="current-layout-badge" class="ui-badge">
-            <i class="fa-solid fa-layer-group mr-2"></i> Layout: Card
-        </button>
         <button id="current-style-badge" class="ui-badge">
             <i class="fa-solid fa-palette mr-2"></i> Stil: Matrix
+        </button>
+        <button id="current-layout-badge" class="ui-badge">
+            <i class="fa-solid fa-layer-group mr-2"></i> Layout: Card
         </button>
     </div>
 
@@ -509,7 +527,7 @@
         styleBtn.innerHTML = `<i class="fa-solid fa-palette mr-2"></i> Stil: ${theme.name}`;
         layoutBtn.innerHTML = `<i class="fa-solid fa-layer-group mr-2"></i> Layout: ${currentLayout === 'card' ? 'Card' : 'Classic'}`;
         
-        // Canvas Logic
+        // Canvas Logic (Matrix Style)
         if (theme.id === 'original') {
             canvas.style.display = 'block';
         } else {
