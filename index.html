@@ -9,17 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Matrix & Glass Fonts -->
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Elegant Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet"> 
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"> 
-    
-    <!-- Picture Glow (Cheesy) Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <!-- Elegant Glow (Adler) Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
@@ -30,7 +24,7 @@
 
     <style>
         /* =========================================
-           BASIS STYLES
+           BASIS & LAYOUT
            ========================================= */
         html, body {
             margin: 0;
@@ -44,31 +38,30 @@
             transition: background-color 0.5s ease, color 0.5s ease;
         }
 
-        /* Hilfsklassen für Sichtbarkeit der Hintergründe */
+        /* Hintergrund-Container Basis */
         .bg-layer {
             position: fixed;
             top: 0; 
             left: 0; 
             width: 100%; 
             height: 100%; 
-            z-index: 0; /* Liegt auf Ebene 0 */
+            z-index: 0; 
             pointer-events: none;
             display: none; /* Standardmäßig aus */
         }
 
-        /* --- 3D Canvas Background (Matrix) --- */
+        /* Matrix Canvas */
         #c { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             z-index: 0; 
             pointer-events: none;
-            display: block; 
+            display: block; /* Standard an */
         }
 
-        /* Content muss davor liegen */
-        /* Wir nutzen jetzt spezifische IDs für die Layout-Container */
-        #view-card, #view-classic { position: relative; z-index: 10; width: 100%; }
+        /* Content Layer */
+        main, #view-classic, #view-card { position: relative; z-index: 10; }
         
-        /* UI Elemente ganz oben */
+        /* UI Controls */
         #ui-controls { 
             z-index: 100; 
             position: fixed; top: 30px; right: 30px;
@@ -79,7 +72,6 @@
             position: fixed; bottom: 30px; right: 30px;
         }
         
-        /* TOP BUTTONS STYLE */
         .ui-badge { 
             padding: 10px 20px; border-radius: 999px;
             font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
@@ -89,17 +81,13 @@
         }
         .ui-badge:hover { background: rgba(255, 255, 255, 0.2); box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
 
-        /* --- LAYOUT SWITCHING LOGIC --- */
+        /* Layout Switching */
         [data-layout="card"] #view-classic { display: none; }
         [data-layout="classic"] #view-card { display: none; }
-        
-        /* Im Classic Mode: Body ist nicht flex centered */
         [data-layout="classic"] body { display: block; overflow-y: auto; }
-        /* Im Card Mode: Body ist flex centered (ausser bei Mobile, da block) */
         [data-layout="card"] body { display: flex; flex-direction: column; align-items: center; }
 
-
-        /* --- STANDARD GLASS PANEL STRUCTURE --- */
+        /* --- GLASS PANEL --- */
         .glass-panel {
             position: relative;
             background: rgba(255, 255, 255, 0.05); 
@@ -108,116 +96,68 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);         
             transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            /* overflow: hidden;  <-- Entfernt, damit Dropdowns funktionieren */
         }
-        /* Runde Ecken nur für Cards, Classic Header braucht andere */
         #view-card .glass-panel { border-radius: 2.5rem; overflow: hidden; }
         
-        /* Matrix Noise Texture */
+        /* Matrix Noise Texture Default */
         .glass-panel::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0.07;
-            pointer-events: none;
-            z-index: 0;
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.07; pointer-events: none; z-index: 0;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
-
         .glass-panel::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(125deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.01) 30%, rgba(255,255,255,0.00) 100%);
-            pointer-events: none;
-            z-index: 1;
+            pointer-events: none; z-index: 1;
         }
-
-        .glass-panel:hover {
-            transform: translateY(-5px);
-            background: rgba(40, 40, 50, 0.3);
-            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 35px 60px -15px rgba(0, 0, 0, 0.9);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        
-        /* Im Classic Header wollen wir kein Hover-Transform */
+        .glass-panel:hover { transform: translateY(-5px); background: rgba(40, 40, 50, 0.3); border-color: rgba(255, 255, 255, 0.2); }
         #view-classic header.glass-panel:hover { transform: none; background: rgba(255, 255, 255, 0.05); }
-
         .glass-panel > * { position: relative; z-index: 2; }
 
-        /* Glass Button Standard */
         .glass-btn {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); transition: all 0.3s ease;
         }
-        .glass-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-        }
-
-        /* CALL BUTTON ANIMATION */
-        @keyframes callPulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); transform: scale(1); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); transform: scale(1.02); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1); }
-        }
-        .call-btn-anim {
-            animation: callPulse 2s infinite;
-        }
-        .call-btn-anim:hover { animation: none; transform: scale(1.05); }
+        .glass-btn:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
 
         .glass-input {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: white; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.4);
         }
-        .glass-input:focus {
-            outline: none;
-            border-color: rgba(255, 255, 255, 0.4);
-            background: rgba(0, 0, 0, 0.6);
-            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
-        }
+        .glass-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.4); background: rgba(0, 0, 0, 0.6); }
 
-        /* Dropdown Menu (Classic) */
+        /* Classic Dropdown */
         .dropdown-menu {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            margin-top: 0.5rem;
-            min-width: 200px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
-            border-radius: 1rem;
-            overflow: hidden;
+            position: absolute; top: 100%; left: 0; margin-top: 0.5rem; min-width: 200px; opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.3s ease; border-radius: 1rem; overflow: hidden;
         }
-        .group:hover .dropdown-menu {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
+        .group:hover .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
 
-        /* Custom Scrollbar */
+        /* Animation Keyframes */
+        @keyframes callPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); transform: scale(1); } 70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); transform: scale(1.02); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1); } }
+        .call-btn-anim { animation: callPulse 2s infinite; }
+        .call-btn-anim:hover { animation: none; transform: scale(1.05); }
+
+        @keyframes moveFlow { 0% { transform: translate(-10%, -5%) rotate(0deg); } 50% { transform: translate(15%, 10%) rotate(5deg); } 100% { transform: translate(-5%, 20%) rotate(-3deg); } }
+        @keyframes waveShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+        @keyframes twinkle { 0% { opacity: 0.1; transform: scale(1); } 100% { opacity: 0.3; transform: scale(1.05); } }
+        @keyframes panelShine { 0% { left: -150%; } 15% { left: 150%; } 100% { left: 150%; } }
+        @keyframes float { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(30px, 50px) rotate(10deg); } }
+
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
 
 
         /* =========================================
-           THEME OVERRIDES
+           THEME OVERRIDES & ASSETS
            ========================================= */
+
+        /* 1. ELEGANT (Violett/Gold) */
+        [data-theme="elegant"] body { background: radial-gradient(circle at top, #6b21a8 0%, #1e1b4b 100%); }
+        [data-theme="elegant"] #c { display: none !important; }
+        [data-theme="elegant"] .bg-layer.elegant { display: block; }
         
-        /* ELEGANT */
-        [data-theme="elegant"] body { background: radial-gradient(circle at top, #6b21a8 0%, #1e1b4b 100%); color: #ffffff; }
-        [data-theme="elegant"] #c { display: none !important; } 
-        [data-theme="elegant"] .elegant-bg { display: block; }
+        .bg-layer.elegant .purple-flow { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at center, rgba(88, 28, 135, 0.15) 0%, rgba(30, 0, 60, 0.08) 30%, rgba(0, 0, 0, 0) 70%); filter: blur(100px); animation: moveFlow 30s infinite alternate ease-in-out; }
+        .bg-layer.elegant .shimmer-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(167, 139, 250, 0.03) 50%, rgba(0,0,0,0) 100%); background-size: 200% 200%; animation: waveShimmer 18s infinite linear; }
+        .bg-layer.elegant .sparkles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(1px 1px at 15% 25%, #fff, rgba(0,0,0,0)), radial-gradient(1.2px 1.2px at 30% 40%, rgba(139, 92, 246, 0.3), rgba(0,0,0,0)); background-size: 800px 800px; animation: twinkle 12s infinite alternate; opacity: 0.2; }
+
         [data-theme="elegant"] .glass-panel { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(192, 132, 252, 0.2); box-shadow: 0 25px 50px -12px rgba(46, 16, 101, 0.5); }
         [data-theme="elegant"] .glass-panel::before { display: none; }
         [data-theme="elegant"] h1, [data-theme="elegant"] h2 { background: linear-gradient(to bottom right, #fff9e6, #ffd700, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -225,79 +165,101 @@
         [data-theme="elegant"] .text-cyan-300 { color: #fbbf24 !important; }
         [data-theme="elegant"] .ui-badge { background: rgba(88, 28, 135, 0.6); border-color: rgba(216, 180, 254, 0.4); color: #e9d5ff; }
 
-        /* GLOW */
+
+        /* 2. GLOW (Picture Glow / Cheesy) */
         [data-theme="glow"] body { background-color: #000000; font-family: 'Inter', sans-serif; }
         [data-theme="glow"] #c { display: none !important; }
-        [data-theme="glow"] .glow-bg, [data-theme="glow"] .glow-overlay { display: block; }
+        [data-theme="glow"] .bg-layer.glow { display: block; }
+        
+        .bg-layer.glow .glow-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.6) saturate(1.1); }
+        .bg-layer.glow .glow-overlay-inner { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+
         [data-theme="glow"] .glass-panel { border: 2px solid #DC2626; box-shadow: 0 0 50px rgba(220, 38, 38, 0.5); background: linear-gradient(160deg, rgba(20, 20, 20, 0.85) 0%, rgba(5, 5, 5, 0.9) 100%); }
-        [data-theme="glow"] h1 { color: #DC2626; -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1); }
-        [data-theme="glow"] .glass-btn { border: 1px solid #ef4444; color: white; background: linear-gradient(to right, #DC2626, #991b1b) !important; }
+        [data-theme="glow"] .glass-panel::before, [data-theme="glow"] .glass-panel::after { display: none; }
+        [data-theme="glow"] h1 { color: #DC2626; -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1); font-family: 'Oswald', sans-serif; text-transform: uppercase; }
+        [data-theme="glow"] .glass-btn { border: 1px solid #ef4444; color: white; background: linear-gradient(to right, #DC2626, #991b1b) !important; font-family: 'Oswald', sans-serif; }
+        [data-theme="glow"] .text-cyan-300 { color: #DC2626 !important; }
         [data-theme="glow"] .ui-badge { background: rgba(220, 38, 38, 0.6); border-color: #ef4444; }
 
-        /* ADLER */
+
+        /* 3. ADLER (Elegant Glow) */
         [data-theme="adler"] body { background-color: #050505; font-family: 'Inter', sans-serif; }
         [data-theme="adler"] #c { display: none !important; }
-        [data-theme="adler"] .adler-bg, [data-theme="adler"] .adler-overlay { display: block; }
+        [data-theme="adler"] .bg-layer.adler { display: block; }
+        
+        .bg-layer.adler .adler-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.3) contrast(1.2); }
+        .bg-layer.adler .adler-overlay-inner { position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); }
+
         [data-theme="adler"] .glass-panel { background-color: rgba(18, 18, 18, 0.85); border: 1px solid rgba(212, 175, 55, 0.4); }
+        [data-theme="adler"] .glass-panel::before, [data-theme="adler"] .glass-panel::after { display: none; }
+        [data-theme="adler"] h1 { font-family: 'Cinzel', serif; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        [data-theme="adler"] .text-cyan-300 { color: #D4AF37 !important; }
         [data-theme="adler"] .glass-btn { border: 1px solid #D4AF37; color: #D4AF37; background: transparent !important; }
-        [data-theme="adler"] h1 { font-family: 'Cinzel', serif; color: #fff; }
         [data-theme="adler"] .ui-badge { background: rgba(212, 175, 55, 0.2); border-color: #D4AF37; color: #D4AF37; }
 
-        /* GLASS */
+
+        /* 4. GLASS (Gradient) */
         [data-theme="glass"] body { background-color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; }
         [data-theme="glass"] #c { display: none !important; }
-        [data-theme="glass"] .glass-blob { display: block; }
+        [data-theme="glass"] .bg-layer.glass { display: block; }
+        
+        .bg-layer.glass .glass-blob { position: fixed; filter: blur(80px); z-index: -1; opacity: 0.8; animation: float 10s infinite alternate ease-in-out; }
+        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #4f46e5; }
+        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #06b6d4; }
+        .blob-3 { top: 40%; left: 40%; width: 300px; height: 300px; background: #ec4899; opacity: 0.6; }
+
         [data-theme="glass"] .glass-panel { background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)); border: 1px solid rgba(255, 255, 255, 0.18); }
+        [data-theme="glass"] .glass-panel::after { display: none; }
         [data-theme="glass"] .text-cyan-300 { color: #22d3ee !important; }
         [data-theme="glass"] .ui-badge { background: rgba(6, 182, 212, 0.2); border-color: rgba(6, 182, 212, 0.4); color: #22d3ee; }
 
-        /* PICGLASS */
+
+        /* 5. PICGLASS (New Bright) */
         [data-theme="picglass"] body { background-color: #f0f0f0; }
         [data-theme="picglass"] #c { display: none !important; }
         [data-theme="picglass"] .bg-layer.picglass { display: block; }
-        [data-theme="picglass"] .glass-panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.4); }
-        [data-theme="picglass"] .glass-panel::before { display: none; }
+        
+        .bg-layer.picglass .picglass-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.85); }
+        .bg-layer.picglass .picglass-overlay-inner { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.1); }
+
+        [data-theme="picglass"] .glass-panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(25px); }
+        [data-theme="picglass"] .glass-panel::before, [data-theme="picglass"] .glass-panel::after { display: none; }
         [data-theme="picglass"] h1, [data-theme="picglass"] p { text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         [data-theme="picglass"] .ui-badge { background: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.3); }
-
-        /* ANIMATIONS & ASSETS */
-        .elegant-bg .purple-flow { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at center, rgba(88, 28, 135, 0.15) 0%, rgba(30, 0, 60, 0.08) 30%, rgba(0, 0, 0, 0) 70%); filter: blur(100px); animation: moveFlow 30s infinite alternate ease-in-out; }
-        .glow-bg .glow-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.6) saturate(1.1); }
-        .adler-bg .adler-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.3) contrast(1.2); }
-        .glass-blob { position: fixed; filter: blur(80px); z-index: -1; opacity: 0.8; animation: float 10s infinite alternate ease-in-out; }
-        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #4f46e5; }
-        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #06b6d4; }
-        .picglass-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.85); }
+        [data-theme="picglass"] .text-cyan-300 { color: #fff !important; }
 
     </style>
 </head>
 <body data-theme="original" data-layout="card" class="antialiased min-h-screen selection:bg-cyan-500 selection:text-white">
 
-    <!-- BACKGROUND LAYERS -->
+    <!-- BACKGROUND LAYERS (z-index 0) -->
     <div class="bg-layer elegant">
         <div class="purple-flow"></div>
+        <div class="shimmer-layer"></div>
+        <div class="sparkles"></div>
     </div>
     <div class="bg-layer glow">
         <div class="glow-image"></div>
-        <div class="bg-black/50 absolute inset-0"></div>
+        <div class="glow-overlay-inner"></div>
     </div>
     <div class="bg-layer adler">
         <div class="adler-image"></div>
-        <div class="bg-radial-black absolute inset-0"></div>
+        <div class="adler-overlay-inner"></div>
     </div>
     <div class="bg-layer glass">
         <div class="glass-blob blob-1"></div>
         <div class="glass-blob blob-2"></div>
+        <div class="glass-blob blob-3"></div>
     </div>
     <div class="bg-layer picglass">
         <div class="picglass-image"></div>
-        <div class="bg-black/10 absolute inset-0"></div>
+        <div class="picglass-overlay-inner"></div>
     </div>
 
-    <!-- 3D Particle Background Canvas (Matrix) -->
+    <!-- 3D Particle Background Canvas (Matrix - z-index 0) -->
     <canvas id="c"></canvas>
 
-    <!-- UI CONTROLS (Top Right) -->
+    <!-- UI CONTROLS (z-index 100) -->
     <div id="ui-controls">
         <button id="current-layout-badge" class="ui-badge">
             <i class="fa-solid fa-layer-group mr-2"></i> Layout: Card
@@ -314,7 +276,7 @@
 
 
     <!-- ==============================================
-         VIEW 1: CARD-BASED LAYOUT (ORIGINAL)
+         VIEW 1: CARD-BASED LAYOUT
          ============================================== -->
     <div id="view-card" class="flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
         <main class="w-full max-w-2xl space-y-6">
@@ -402,7 +364,7 @@
 
 
     <!-- ==============================================
-         VIEW 2: CLASSIC LAYOUT (Header, Hero, Footer)
+         VIEW 2: CLASSIC LAYOUT
          ============================================== -->
     <div id="view-classic" class="w-full min-h-screen flex flex-col">
         
@@ -419,24 +381,20 @@
                     <!-- Nav -->
                     <nav class="hidden md:flex gap-4">
                         <a href="#" class="glass-btn px-4 py-2 rounded-lg text-sm font-medium text-white hover:text-cyan-300">Kanzlei</a>
-                        
-                        <!-- Dropdown Container -->
                         <div class="relative group">
                             <button class="glass-btn px-4 py-2 rounded-lg text-sm font-medium text-white hover:text-cyan-300 flex items-center gap-2">
                                 Leistungen <i class="fa-solid fa-chevron-down text-xs"></i>
                             </button>
-                            <!-- Dropdown Menu -->
                             <div class="dropdown-menu glass-panel !bg-black/90 !border-white/10 p-2">
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md">Urheberrecht</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md">Medienrecht</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md">IT-Recht</a>
                             </div>
                         </div>
-
                         <a href="#kontakt-classic" class="glass-btn px-4 py-2 rounded-lg text-sm font-medium text-white hover:text-cyan-300">Kontakt</a>
                     </nav>
 
-                    <!-- CTA Button Header -->
+                    <!-- CTA -->
                     <a href="tel:0123456789" class="hidden md:flex glass-btn px-5 py-2 rounded-full text-sm font-bold text-white border-cyan-500/50 hover:bg-cyan-500/20 call-btn-anim">
                         <i class="fa-solid fa-phone mr-2"></i> Anrufen
                     </a>
@@ -465,11 +423,10 @@
             </div>
         </section>
 
-        <!-- Classic Grid (Wider) -->
+        <!-- Classic Grid -->
         <section class="max-w-7xl mx-auto px-4 py-16 w-full">
             <h2 class="text-3xl font-bold text-white mb-10 text-center">Unsere Expertise</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Service Items reused style logic but adapted layout -->
                 <div class="glass-panel p-8 rounded-2xl hover:translate-y-[-5px] transition duration-300">
                     <div class="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-300 mb-4 text-2xl"><i class="fa-solid fa-copyright"></i></div>
                     <h3 class="text-xl font-bold text-white mb-2">Urheberrecht</h3>
@@ -535,30 +492,24 @@
     ];
     
     let currentThemeIndex = 0;
-    let currentLayout = 'card'; // 'card' or 'classic'
+    let currentLayout = 'card';
     
-    // UI References
+    const body = document.body;
     const layoutBtn = document.getElementById('current-layout-badge');
     const styleBtn = document.getElementById('current-style-badge');
     const switcherBtn = document.getElementById('theme-switcher');
     const canvas = document.getElementById('c');
 
-    // ---------------------------------------------------
-    // FUNCTIONS
-    // ---------------------------------------------------
-
     function updateUI() {
         const theme = themes[currentThemeIndex];
         
-        // Update Attributes
         document.body.setAttribute('data-theme', theme.id);
         document.body.setAttribute('data-layout', currentLayout);
         
-        // Update Text
         styleBtn.innerHTML = `<i class="fa-solid fa-palette mr-2"></i> Stil: ${theme.name}`;
         layoutBtn.innerHTML = `<i class="fa-solid fa-layer-group mr-2"></i> Layout: ${currentLayout === 'card' ? 'Card' : 'Classic'}`;
         
-        // Canvas Control (Only for Matrix Style)
+        // Canvas Logic
         if (theme.id === 'original') {
             canvas.style.display = 'block';
         } else {
@@ -566,26 +517,20 @@
         }
     }
 
-    // Toggle Style
     function nextTheme() {
         currentThemeIndex = (currentThemeIndex + 1) % themes.length;
         updateUI();
     }
 
-    // Toggle Layout
     function toggleLayout() {
         currentLayout = currentLayout === 'card' ? 'classic' : 'card';
         updateUI();
     }
 
-    // ---------------------------------------------------
-    // EVENT LISTENERS
-    // ---------------------------------------------------
     layoutBtn.addEventListener('click', toggleLayout);
     styleBtn.addEventListener('click', nextTheme);
-    switcherBtn.addEventListener('click', nextTheme); // Bottom button switches style
+    switcherBtn.addEventListener('click', nextTheme);
 
-    // Init
     updateUI();
 
 
@@ -626,7 +571,6 @@
 
         let tick = 0;
         function animate() {
-          // Check Theme for Performance
           const currentTheme = document.body.getAttribute('data-theme');
           if (currentTheme && currentTheme !== 'original') {
               ctx.clearRect(0, 0, w, h);
