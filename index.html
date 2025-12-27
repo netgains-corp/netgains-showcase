@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Justus A. Wegner | Rechtsanwalt für Digitalrecht</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Matrix & Glass Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Elegant Fonts (for Adler/Glass styles) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"> 
+    
+    <!-- Picture Glow (Cheesy) Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Elegant Glow (Adler) Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* =========================================
+           BASIS STYLES (DEFAULT / MATRIX)
+           ========================================= */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #050505; 
+            overflow-x: hidden;
+            color: #ffffff;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Hilfsklassen für Sichtbarkeit der Hintergründe */
+        .glow-bg, .glow-overlay, .adler-bg, .adler-overlay, .glass-blob, .bg-layer { display: none; }
+        
+        /* --- 3D Canvas Background (Matrix) --- */
+        #c { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 0; 
+            pointer-events: none;
+            /* Standardmäßig sichtbar für Matrix */
+            display: block; 
+        }
+
+        /* Content muss davor liegen */
+        main { position: relative; z-index: 10; }
+        
+        /* UI Elemente ganz oben */
+        #theme-switcher { 
+            z-index: 100; 
+            position: fixed; bottom: 30px; right: 30px;
+        }
+        
+        /* STIL BUTTON OBEN RECHTS */
+        #current-style-badge { 
+            z-index: 100; 
+            position: fixed; top: 30px; right: 30px;
+            padding: 10px 20px; border-radius: 999px;
+            font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff;
+            backdrop-filter: blur(10px); transition: all 0.3s ease;
+        }
+        #current-style-badge:hover { background: rgba(255, 255, 255, 0.2); box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
+
+        /* --- STANDARD GLASS PANEL STRUCTURE (Matrix Default) --- */
+        .glass-panel {
+            position: relative;
+            background: rgba(20, 20, 25, 0.2); 
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), inset 0 0 20px 0 rgba(255, 255, 255, 0.01), 0 25px 50px -12px rgba(0, 0, 0, 0.8);         
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden; 
+            border-radius: 2.5rem; 
+        }
+
+        /* Matrix Noise Texture */
+        .glass-panel::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.07;
+            pointer-events: none;
+            z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        .glass-panel::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(125deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.01) 30%, rgba(255,255,255,0.00) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-5px);
+            background: rgba(40, 40, 50, 0.3);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 35px 60px -15px rgba(0, 0, 0, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-panel > * { position: relative; z-index: 2; }
+
+        /* Glass Button Standard */
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+        }
+
+        /* CALL BUTTON ANIMATION */
+        @keyframes callPulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); transform: scale(1); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); transform: scale(1.02); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1); }
+        }
+        .call-btn-anim {
+            animation: callPulse 2s infinite;
+        }
+        .call-btn-anim:hover { animation: none; transform: scale(1.05); }
+
+        .glass-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.4);
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(0, 0, 0, 0.6);
+            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+
+        /* =========================================
+           THEME: PICTURE GLOW
+           ========================================= */
+        [data-theme="glow"] body { background-color: #000000; font-family: 'Inter', sans-serif; }
+        /* FIX: Canvas weg! */
+        [data-theme="glow"] #c { display: none !important; }
+        [data-theme="glow"] .bg-layer.glow { display: block; }
+        
+        .glow-image {
+            position: absolute; inset: 0; 
+            background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop'); 
+            background-size: cover; background-position: center;
+            filter: brightness(0.6) saturate(1.1) contrast(1.1);
+        }
+        .glow-overlay-inner { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+
+        [data-theme="glow"] .glass-panel {
+            background: linear-gradient(160deg, rgba(20, 20, 20, 0.85) 0%, rgba(5, 5, 5, 0.9) 100%);
+            border: 2px solid #DC2626; box-shadow: 0 0 50px rgba(220, 38, 38, 0.5), inset 0 0 30px rgba(0, 0, 0, 0.8);
+            border-radius: 16px; backdrop-filter: none;
+        }
+        [data-theme="glow"] .glass-panel::before, [data-theme="glow"] .glass-panel::after { display: none; }
+        [data-theme="glow"] .glass-panel:hover { transform: translateY(-5px); box-shadow: 0 0 60px rgba(220, 38, 38, 0.7), inset 0 0 30px rgba(0, 0, 0, 0.8); }
+        [data-theme="glow"] h1, [data-theme="glow"] h2, [data-theme="glow"] h3 { font-family: 'Oswald', sans-serif; text-transform: uppercase; }
+        [data-theme="glow"] h1 { color: #DC2626; -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1); filter: drop-shadow(0 0 15px rgba(220, 38, 38, 0.8)); letter-spacing: 0.05em; }
+        [data-theme="glow"] .text-cyan-300, [data-theme="glow"] .text-indigo-300, [data-theme="glow"] .text-cyan-400, [data-theme="glow"] .text-indigo-400, [data-theme="glow"] .text-pink-400, [data-theme="glow"] .fa-solid, [data-theme="glow"] .fa-brands { color: #DC2626 !important; filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.8)); }
+        [data-theme="glow"] .glass-btn, [data-theme="glow"] button[type="submit"] {
+            background: linear-gradient(to right, #DC2626, #991b1b) !important; border: 1px solid #ef4444; color: white; font-family: 'Oswald', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; box-shadow: 0 5px 20px rgba(220, 38, 38, 0.4);
+        }
+        [data-theme="glow"] .glass-btn:hover { box-shadow: 0 5px 30px rgba(220, 38, 38, 0.7); transform: translateY(-2px); }
+        [data-theme="glow"] .bg-cyan-500\/10, [data-theme="glow"] .bg-indigo-500\/20, [data-theme="glow"] .bg-cyan-500\/20, [data-theme="glow"] .bg-pink-500\/20, [data-theme="glow"] .bg-emerald-500\/20 { background: transparent !important; border: 1px solid #DC2626 !important; color: #DC2626 !important; font-family: 'Oswald', sans-serif; box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); }
+        [data-theme="glow"] .bg-gradient-to-tr { background: black !important; border: 2px solid #DC2626; box-shadow: 0 0 20px rgba(220, 38, 38, 0.6); }
+        [data-theme="glow"] .glass-input { border: 1px solid rgba(220, 38, 38, 0.4); background: rgba(0,0,0,0.8); }
+        [data-theme="glow"] .glass-input:focus { border-color: #DC2626; box-shadow: 0 0 15px rgba(220, 38, 38, 0.3); }
+        [data-theme="glow"] #current-style-badge { background: rgba(220, 38, 38, 0.6); border-color: #ef4444; color: white; box-shadow: 0 0 15px rgba(220, 38, 38, 0.5); }
+        [data-theme="glow"] #theme-switcher { background: #DC2626; color: white; border-color: #ef4444; box-shadow: 0 0 20px rgba(220, 38, 38, 0.6); }
+
+
+        /* =========================================
+           THEME: ELEGANT GLOW (Adler)
+           ========================================= */
+        [data-theme="adler"] body { background-color: #050505; font-family: 'Inter', sans-serif; }
+        /* FIX: Canvas weg! */
+        [data-theme="adler"] #c { display: none !important; }
+        [data-theme="adler"] .bg-layer.adler { display: block; }
+        
+        .adler-image {
+            position: absolute; inset: 0;
+            background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=1920&auto=format&fit=crop'); 
+            background-size: cover; background-position: center; filter: brightness(0.3) contrast(1.2);
+        }
+        .adler-overlay-inner { position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); }
+
+        [data-theme="adler"] .glass-panel {
+            background-color: rgba(18, 18, 18, 0.85); border: 1px solid rgba(212, 175, 55, 0.4); box-shadow: 0 0 35px rgba(212, 175, 55, 0.2), 0 0 15px rgba(212, 175, 55, 0.1); backdrop-filter: blur(12px); border-radius: 4px;
+        }
+        [data-theme="adler"] .glass-panel:hover { transform: translateY(-2px); box-shadow: 0 0 45px rgba(212, 175, 55, 0.3); border-color: rgba(212, 175, 55, 0.6); }
+        [data-theme="adler"] .rounded-full, [data-theme="adler"] .rounded-2xl, [data-theme="adler"] .rounded-3xl, [data-theme="adler"] .rounded-xl { border-radius: 2px !important; }
+        [data-theme="adler"] .w-32.h-32.rounded-full, [data-theme="adler"] .w-full.h-full.rounded-full { border-radius: 9999px !important; }
+        [data-theme="adler"] h1, [data-theme="adler"] h2, [data-theme="adler"] h3 { font-family: 'Cinzel', serif; letter-spacing: 0.05em; color: #D4AF37; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); }
+        [data-theme="adler"] h1 { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        [data-theme="adler"] .text-cyan-300, [data-theme="adler"] .text-indigo-300, [data-theme="adler"] .text-cyan-400, [data-theme="adler"] .text-indigo-400, [data-theme="adler"] .text-pink-400, [data-theme="adler"] .fa-solid, [data-theme="adler"] .fa-brands { color: #D4AF37 !important; }
+        [data-theme="adler"] .glass-btn, [data-theme="adler"] button[type="submit"] {
+            background: transparent !important; border: 1px solid #D4AF37; color: #D4AF37; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; font-weight: 700; box-shadow: none; animation: none;
+        }
+        [data-theme="adler"] .glass-btn:hover, [data-theme="adler"] button[type="submit"]:hover { background: #D4AF37 !important; color: #000; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); }
+        [data-theme="adler"] .bg-cyan-500\/10, [data-theme="adler"] .bg-indigo-500\/20, [data-theme="adler"] .bg-cyan-500\/20, [data-theme="adler"] .bg-pink-500\/20, [data-theme="adler"] .bg-emerald-500\/20 { background: transparent !important; border: 1px solid #D4AF37 !important; color: #D4AF37 !important; font-family: 'Cinzel', serif; box-shadow: none; }
+        [data-theme="adler"] .bg-gradient-to-tr { background: transparent !important; border: 1px solid #D4AF37; padding: 5px; }
+        [data-theme="adler"] .glass-input { border: 1px solid rgba(212, 175, 55, 0.3); background: rgba(0,0,0,0.6); border-radius: 0; }
+        [data-theme="adler"] .glass-input:focus { border-color: #D4AF37; box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); }
+        [data-theme="adler"] #current-style-badge { background: rgba(212, 175, 55, 0.2); border-color: #D4AF37; color: #D4AF37; }
+        [data-theme="adler"] #theme-switcher { background: #121212; color: #D4AF37; border-color: #D4AF37; }
+
+
+        /* =========================================
+           THEME: GLASS GRADIENT (Praxis)
+           ========================================= */
+        [data-theme="glass"] body {
+            background-color: #0f172a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        [data-theme="glass"] #c { display: none !important; }
+        [data-theme="glass"] .bg-layer.glass { display: block; }
+
+        @keyframes float { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(30px, 50px) rotate(10deg); } }
+        
+        .blob { position: absolute; filter: blur(80px); opacity: 0.8; animation: float 10s infinite alternate ease-in-out; }
+        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #4f46e5; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #06b6d4; border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; animation-delay: -2s; }
+        .blob-3 { top: 40%; left: 40%; width: 300px; height: 300px; background: #ec4899; border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; animation-delay: -4s; opacity: 0.6; }
+
+        [data-theme="glass"] .glass-panel {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+            border-radius: 2.5rem;
+        }
+        [data-theme="glass"] .glass-panel::before {
+            content: ''; position: absolute; inset: 0; border-radius: inherit;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 40%);
+            pointer-events: none; z-index: 1; opacity: 1; display: block;
+        }
+        [data-theme="glass"] .glass-panel::after { display: none; }
+        
+        [data-theme="glass"] .glass-panel:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
+        }
+
+        [data-theme="glass"] .glass-btn,
+        [data-theme="glass"] button[type="submit"] {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05)) !important;
+            backdrop-filter: blur(20px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            color: #fff;
+        }
+        [data-theme="glass"] .glass-btn:hover,
+        [data-theme="glass"] button[type="submit"]:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1)) !important;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3), 0 0 15px rgba(255,255,255,0.2);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        [data-theme="glass"] .text-cyan-300,
+        [data-theme="glass"] .text-cyan-400,
+        [data-theme="glass"] .text-emerald-300 { color: #22d3ee !important; }
+        [data-theme="glass"] .text-indigo-300, 
+        [data-theme="glass"] .text-indigo-400 { color: #818cf8 !important; }
+        [data-theme="glass"] .text-pink-400 { color: #ec4899 !important; }
+
+        [data-theme="glass"] .bg-cyan-500\/10,
+        [data-theme="glass"] .bg-indigo-500\/20,
+        [data-theme="glass"] .bg-cyan-500\/20,
+        [data-theme="glass"] .bg-pink-500\/20,
+        [data-theme="glass"] .bg-emerald-500\/20 {
+            background-color: rgba(6, 182, 212, 0.15) !important;
+            border-color: rgba(6, 182, 212, 0.3) !important;
+            color: #a5f3fc !important;
+            backdrop-filter: blur(5px);
+        }
+        
+        [data-theme="glass"] .bg-emerald-500 {
+            background-color: #22c55e !important;
+            box-shadow: 0 0 10px rgba(34,197,94,0.5);
+        }
+        
+        [data-theme="glass"] .glass-input {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        [data-theme="glass"] .glass-input:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 0 15px rgba(255,255,255,0.1);
+        }
+        [data-theme="glass"] #current-style-badge { background: rgba(6, 182, 212, 0.2); border-color: rgba(6, 182, 212, 0.4); color: #22d3ee; }
+        [data-theme="glass"] #theme-switcher { background: #0f172a; color: #22d3ee; border-color: #22d3ee; }
+
+
+        /* =========================================
+           THEME: PICTURE GLASS (Neu)
+           ========================================= */
+        [data-theme="picglass"] body {
+            background-color: #f0f0f0; /* Hell als Fallback */
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        [data-theme="picglass"] #c { display: none !important; }
+        [data-theme="picglass"] .bg-layer.picglass { display: block; }
+
+        .picglass-image {
+            position: absolute; inset: 0;
+            background-image: url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1920&auto=format&fit=crop'); 
+            background-size: cover; background-position: center;
+            /* Nur leicht abgedunkelt - sehr helles, klares Bild */
+            filter: brightness(0.85); 
+        }
+        .picglass-overlay-inner {
+            position: absolute; inset: 0;
+            background: rgba(0, 0, 0, 0.1); /* Hauchdünner Overlay */
+        }
+
+        [data-theme="picglass"] .glass-panel {
+            /* EXTREM GLASIG */
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            border-radius: 2.5rem;
+        }
+        
+        [data-theme="picglass"] .glass-panel:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-3px);
+        }
+        
+        [data-theme="picglass"] .glass-panel::before { display: none; }
+        [data-theme="picglass"] .glass-panel::after { display: none; }
+
+        /* Text Shadows für Lesbarkeit auf hellem Grund */
+        [data-theme="picglass"] h1, 
+        [data-theme="picglass"] h2, 
+        [data-theme="picglass"] p, 
+        [data-theme="picglass"] div {
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="picglass"] button[type="submit"],
+        [data-theme="picglass"] .glass-btn {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: #fff;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        [data-theme="picglass"] .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.3) !important;
+            border-color: #fff;
+        }
+
+        /* Buttons & Badges Anpassung */
+        [data-theme="picglass"] .bg-cyan-500\/10,
+        [data-theme="picglass"] .bg-indigo-500\/20,
+        [data-theme="picglass"] .bg-cyan-500\/20,
+        [data-theme="picglass"] .bg-pink-500\/20,
+        [data-theme="picglass"] .bg-emerald-500\/20 {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            color: #fff !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        [data-theme="picglass"] .text-cyan-300, 
+        [data-theme="picglass"] .text-indigo-300, 
+        [data-theme="picglass"] .text-pink-300,
+        [data-theme="picglass"] .text-emerald-300 {
+            color: #fff !important; /* Icons weiß */
+        }
+
+        [data-theme="picglass"] .glass-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        [data-theme="picglass"] .glass-input:focus {
+            background: rgba(0, 0, 0, 0.3);
+            border-color: #fff;
+        }
+        /* Top Right Button für Picture Glass besser sichtbar machen */
+        [data-theme="picglass"] #current-style-badge {
+            background: rgba(0, 0, 0, 0.4); /* Dunklerer Hintergrund */
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+        [data-theme="picglass"] #theme-switcher {
+            background: rgba(255, 255, 255, 0.8);
+            color: #000;
+            border-color: #fff;
+        }
+
+    </style>
+</head>
+<body data-theme="original" class="antialiased min-h-screen flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 selection:bg-cyan-500 selection:text-white">
+
+    <!-- PICTURE GLOW Special Backgrounds -->
+    <div class="bg-layer glow">
+        <div class="glow-image"></div>
+        <div class="glow-overlay-inner"></div>
+    </div>
+
+    <!-- ELEGANT GLOW (ADLER) Special Backgrounds -->
+    <div class="bg-layer adler">
+        <div class="adler-image"></div>
+        <div class="adler-overlay-inner"></div>
+    </div>
+
+    <!-- GLASS GRADIENT Special Backgrounds -->
+    <div class="bg-layer glass">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- PICTURE GLASS Special Backgrounds -->
+    <div class="bg-layer picglass">
+        <div class="picglass-image"></div>
+        <div class="picglass-overlay-inner"></div>
+    </div>
+
+    <!-- 3D Particle Background Canvas (Matrix) -->
+    <canvas id="c"></canvas>
+
+    <!-- Main Content Container -->
+    <main class="w-full max-w-2xl space-y-6 relative z-10">
+
+        <!-- 1. MAIN IDENTITY CARD -->
+        <div class="glass-panel rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left relative group">
+            
+            <div class="relative shrink-0">
+                <div class="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-cyan-500/80 to-indigo-500/80 shadow-lg shadow-indigo-500/20">
+                    <!-- Profile Icon Placeholder -->
+                    <div class="w-full h-full rounded-full bg-slate-900/90 backdrop-blur-sm border-2 border-white/10 flex items-center justify-center text-slate-300 text-5xl md:text-6xl shadow-inner">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                </div>
+                <div class="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 rounded-full border-4 border-[#050505] shadow-lg shadow-emerald-500/30" title="Verfügbar"></div>
+            </div>
+
+            <div class="flex-1">
+                <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-bold tracking-wide uppercase mb-3 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                    Rechtsanwalt & Notar
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight drop-shadow-md">Dr. Justus A. Wegner</h1>
+                <p class="text-slate-300 text-sm md:text-base leading-relaxed mb-6 font-medium">
+                    Spezialisiert auf Medienrecht, IP & digitales Wirtschaftsrecht. Ich schütze Ihr geistiges Eigentum und Ihre digitale Reputation.
+                </p>
+                
+                <div class="flex flex-wrap justify-center md:justify-start gap-3">
+                    <!-- Call Button with Animation -->
+                    <a href="tel:0123456789" class="glass-btn px-6 py-2.5 rounded-full text-sm font-semibold text-white flex items-center gap-2 call-btn-anim">
+                        <i class="fa-solid fa-phone-volume"></i>
+                        Jetzt anrufen
+                    </a>
+                    <a href="#" class="glass-btn px-4 py-2.5 rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors" title="vCard Download">
+                        <i class="fa-solid fa-address-card"></i>
+                    </a>
+                    <a href="#" class="glass-btn px-4 py-2.5 rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors" title="LinkedIn">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. STATUS / INFO BAR -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition-colors cursor-default">
+                <div class="text-cyan-400 text-lg mb-1 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="text-xs text-slate-300 uppercase font-bold tracking-wider">Standort</div>
+                <div class="text-sm font-semibold text-white mt-1">Musterstraße 1<br>12345 Musterstadt</div>
+            </div>
+            <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition-colors cursor-default">
+                <div class="text-indigo-400 text-lg mb-1 drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]"><i class="fa-solid fa-scale-balanced"></i></div>
+                <div class="text-xs text-slate-300 uppercase font-bold tracking-wider">Fokus</div>
+                <div class="text-sm font-semibold text-white mt-1">Digitalrecht</div>
+            </div>
+            <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition-colors cursor-default col-span-2 md:col-span-1">
+                <div class="text-pink-400 text-lg mb-1 drop-shadow-[0_0_8px_rgba(244,114,182,0.5)]"><i class="fa-solid fa-clock"></i></div>
+                <div class="text-xs text-slate-300 uppercase font-bold tracking-wider">Erreichbarkeit</div>
+                <div class="text-sm font-semibold text-white mt-1">Mo-Fr 09:00 - 18:00</div>
+            </div>
+        </div>
+
+        <!-- 3. SERVICES GRID -->
+        <div class="glass-panel rounded-[2.5rem] p-8">
+            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm border border-white/10"><i class="fa-solid fa-layer-group"></i></span>
+                Rechtsgebiete
+            </h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Service 1 -->
+                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-300 group-hover:text-indigo-200 transition-colors border border-indigo-500/10">
+                            <i class="fa-solid fa-copyright"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-1">Urheberrecht</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed font-medium">Schutz kreativer Werke, Lizenzen und Abwehr von Abmahnungen.</p>
+                </div>
+
+                <!-- Service 2 -->
+                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="p-2 bg-cyan-500/20 rounded-lg text-cyan-300 group-hover:text-cyan-200 transition-colors border border-cyan-500/10">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-1">IT-Recht & Datenschutz</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed font-medium">DSGVO-Compliance, AGB-Erstellung und Softwareverträge.</p>
+                </div>
+
+                <!-- Service 3 -->
+                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="p-2 bg-pink-500/20 rounded-lg text-pink-300 group-hover:text-pink-200 transition-colors border border-pink-500/10">
+                            <i class="fa-solid fa-bullhorn"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-1">Medienrecht</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed font-medium">Pressefreiheit, Persönlichkeitsrechte und Reputationsschutz.</p>
+                </div>
+
+                <!-- Service 4 -->
+                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="p-2 bg-emerald-500/20 rounded-lg text-emerald-300 group-hover:text-emerald-200 transition-colors border border-emerald-500/10">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-1">Start-up Beratung</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed font-medium">Gründung, Finanzierungsrunden und Mitarbeiterbeteiligungen.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. CONTACT SECTION -->
+        <div id="kontakt" class="glass-panel rounded-[2.5rem] p-8 md:p-10">
+            <h2 class="text-xl font-bold text-white mb-6 text-center">Mandat anfragen</h2>
+            
+            <form onsubmit="event.preventDefault(); alert('Dies ist eine Demo. Die Nachricht wurde nicht gesendet.');" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-300 ml-2 tracking-wide uppercase">Name</label>
+                        <input type="text" placeholder="Ihr Name" class="w-full px-4 py-3 rounded-xl glass-input placeholder-slate-400 focus:ring-2 focus:ring-cyan-500/50 transition-all font-medium">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-300 ml-2 tracking-wide uppercase">E-Mail</label>
+                        <input type="email" placeholder="ihre@email.de" class="w-full px-4 py-3 rounded-xl glass-input placeholder-slate-400 focus:ring-2 focus:ring-cyan-500/50 transition-all font-medium">
+                    </div>
+                </div>
+                
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-300 ml-2 tracking-wide uppercase">Anliegen</label>
+                    <textarea rows="4" placeholder="Beschreiben Sie kurz Ihr rechtliches Anliegen..." class="w-full px-4 py-3 rounded-xl glass-input placeholder-slate-400 focus:ring-2 focus:ring-cyan-500/50 transition-all resize-none font-medium"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/30 transition-all transform hover:scale-[1.02] border border-white/10 relative overflow-hidden">
+                    <span class="relative z-10">Nachricht senden</span>
+                    <div class="absolute inset-0 bg-white/20 blur-md opacity-0 hover:opacity-100 transition-opacity"></div>
+                </button>
+            </form>
+
+            <div class="mt-8 pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-4 font-medium">
+                <p>&copy; 2024 Dr. Justus A. Wegner</p>
+                <div class="flex gap-4">
+                    <a href="#" class="hover:text-white transition-colors">Impressum</a>
+                    <a href="#" class="hover:text-white transition-colors">Datenschutz</a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- OBEN RECHTS: ANZEIGE DES AKTUELLEN STILS (Klickbar zum Wechseln) -->
+    <button id="current-style-badge">
+        <i class="fa-solid fa-palette mr-2"></i> Stil: Matrix
+    </button>
+
+    <!-- UNTEN RECHTS: THEME SWITCHER ICON -->
+    <div id="theme-switcher" title="Design wechseln">
+        <i class="fa-solid fa-rotate"></i>
+    </div>
+
+    <script>
+    // ---------------------------------------------------
+    // THEME SWITCHER LOGIK
+    // ---------------------------------------------------
+    const themes = [
+        { id: 'original', name: 'Matrix' },
+        { id: 'glow',     name: 'Picture Glow' },
+        { id: 'adler',    name: 'Elegant Glow' },
+        { id: 'glass',    name: 'Glass Gradient' },
+        { id: 'picglass', name: 'Picture Glass' }
+    ];
+    
+    let currentThemeIndex = 0;
+    
+    const body = document.body;
+    const switcherBtn = document.getElementById('theme-switcher');
+    const badgeBtn = document.getElementById('current-style-badge');
+
+    // Funktion zum Aktualisieren der UI
+    function updateThemeUI() {
+        const theme = themes[currentThemeIndex];
+        
+        // 1. Data-Attribute am Body setzen
+        body.setAttribute('data-theme', theme.id);
+        
+        // 2. Text im Badge oben rechts aktualisieren
+        badgeBtn.innerHTML = `<i class="fa-solid fa-palette mr-2"></i> Stil: ${theme.name}`;
+        
+        // 3. Canvas (Matrix) Explizit steuern
+        const canvas = document.getElementById('c');
+        if (theme.id === 'original') {
+            canvas.style.display = 'block';
+        } else {
+            canvas.style.display = 'none';
+        }
+    }
+
+    function nextTheme() {
+        currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+        updateThemeUI();
+    }
+
+    // Beide Buttons schalten zum nächsten Theme weiter
+    switcherBtn.addEventListener('click', nextTheme);
+    badgeBtn.addEventListener('click', nextTheme);
+
+    // Initiale Anzeige
+    updateThemeUI();
+
+
+    // ---------------------------------------------------
+    // CANVAS HINTERGRUND (Original Code)
+    // ---------------------------------------------------
+    (function() {
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let w, h;
+        
+        function resize() {
+          w = canvas.width = window.innerWidth;
+          h = canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+
+        // CONFIG
+        const POINTS = 2500; 
+        const DEPTH = 1000;  
+        const FOV = 400;     
+        const WAVE_SPEED = 0.002; 
+
+        // PARTICLES INIT
+        const particles = [];
+        for (let i = 0; i < POINTS; i++) {
+          particles.push({
+            x: Math.random() * w, 
+            y: h / 2, 
+            z: Math.random() * DEPTH,
+            speed: (Math.random() * 0.5) + 0.5, 
+            offset: Math.random() * Math.PI * 2
+          });
+        }
+
+        // PROJEKTION
+        function project(p) {
+          const scale = FOV / (FOV + p.z);
+          return {
+            x: p.x, 
+            y: p.y,
+            r: scale * 4.5, 
+            a: Math.min(1, scale * 1.5) 
+          };
+        }
+
+        // ANIMATION
+        let tick = 0;
+
+        function animate() {
+          // CHECK: Wenn das Theme NICHT 'original' (Matrix) ist,
+          // dann lösche den Canvas und zeichne NICHTS. 
+          const currentTheme = document.body.getAttribute('data-theme');
+          if (currentTheme && currentTheme !== 'original') {
+              ctx.clearRect(0, 0, w, h);
+              requestAnimationFrame(animate);
+              return;
+          }
+
+          // Schwarzer Schleier für Trails
+          ctx.fillStyle = 'rgba(5, 5, 5, 0.25)'; 
+          ctx.fillRect(0, 0, w, h);
+          
+          ctx.globalCompositeOperation = 'lighter';
+
+          tick += WAVE_SPEED;
+
+          for (const p of particles) {
+            // Bewegung
+            p.x += Math.cos(tick + p.offset) * 0.5;
+
+            // Wellen-Berechnung
+            const waveX = Math.sin((p.x * 0.002) + tick * 2 + p.offset * 0.2);
+            const waveZ = Math.cos((p.z * 0.003) + tick + p.offset);
+            
+            const amplitude = 150 + (Math.sin(tick * 0.5) * 50); 
+            
+            p.y = (h / 2) + (waveX + waveZ) * amplitude;
+
+            // Loop Logic
+            if (p.x < -100) p.x = w + 100;
+            if (p.x > w + 100) p.x = -100;
+            if (p.z < 0) p.z = DEPTH; 
+            if (p.z > DEPTH) p.z = 0;
+
+            const pr = project(p);
+            
+            if (pr.r > 0) {
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(0, 255, 255, ${pr.a})`;
+                ctx.arc(pr.x, pr.y, pr.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+          }
+
+          ctx.globalCompositeOperation = 'source-over';
+          
+          requestAnimationFrame(animate);
+        }
+
+        animate();
+    })();
+    </script>
+</body>
+</html>
