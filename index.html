@@ -12,7 +12,7 @@
     <!-- Matrix & Glass Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Elegant Fonts (for Adler/Glass styles) -->
+    <!-- Elegant Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet"> 
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"> 
     
@@ -30,7 +30,7 @@
 
     <style>
         /* =========================================
-           BASIS STYLES (DEFAULT / MATRIX)
+           BASIS STYLES
            ========================================= */
         html, body {
             margin: 0;
@@ -45,51 +45,74 @@
         }
 
         /* Hilfsklassen für Sichtbarkeit der Hintergründe */
-        .glow-bg, .glow-overlay, .adler-bg, .adler-overlay, .glass-blob, .bg-layer { display: none; }
-        
+        .bg-layer {
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 0; /* Liegt auf Ebene 0 */
+            pointer-events: none;
+            display: none; /* Standardmäßig aus */
+        }
+
         /* --- 3D Canvas Background (Matrix) --- */
         #c { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             z-index: 0; 
             pointer-events: none;
-            /* Standardmäßig sichtbar für Matrix */
             display: block; 
         }
 
         /* Content muss davor liegen */
-        main { position: relative; z-index: 10; }
+        /* Wir nutzen jetzt spezifische IDs für die Layout-Container */
+        #view-card, #view-classic { position: relative; z-index: 10; width: 100%; }
         
         /* UI Elemente ganz oben */
+        #ui-controls { 
+            z-index: 100; 
+            position: fixed; top: 30px; right: 30px;
+            display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+        }
         #theme-switcher { 
             z-index: 100; 
             position: fixed; bottom: 30px; right: 30px;
         }
         
-        /* STIL BUTTON OBEN RECHTS */
-        #current-style-badge { 
-            z-index: 100; 
-            position: fixed; top: 30px; right: 30px;
+        /* TOP BUTTONS STYLE */
+        .ui-badge { 
             padding: 10px 20px; border-radius: 999px;
             font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff;
             backdrop-filter: blur(10px); transition: all 0.3s ease;
+            white-space: nowrap;
         }
-        #current-style-badge:hover { background: rgba(255, 255, 255, 0.2); box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
+        .ui-badge:hover { background: rgba(255, 255, 255, 0.2); box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
 
-        /* --- STANDARD GLASS PANEL STRUCTURE (Matrix Default) --- */
+        /* --- LAYOUT SWITCHING LOGIC --- */
+        [data-layout="card"] #view-classic { display: none; }
+        [data-layout="classic"] #view-card { display: none; }
+        
+        /* Im Classic Mode: Body ist nicht flex centered */
+        [data-layout="classic"] body { display: block; overflow-y: auto; }
+        /* Im Card Mode: Body ist flex centered (ausser bei Mobile, da block) */
+        [data-layout="card"] body { display: flex; flex-direction: column; align-items: center; }
+
+
+        /* --- STANDARD GLASS PANEL STRUCTURE --- */
         .glass-panel {
             position: relative;
-            background: rgba(20, 20, 25, 0.2); 
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), inset 0 0 20px 0 rgba(255, 255, 255, 0.01), 0 25px 50px -12px rgba(0, 0, 0, 0.8);         
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);         
             transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            overflow: hidden; 
-            border-radius: 2.5rem; 
+            /* overflow: hidden;  <-- Entfernt, damit Dropdowns funktionieren */
         }
-
+        /* Runde Ecken nur für Cards, Classic Header braucht andere */
+        #view-card .glass-panel { border-radius: 2.5rem; overflow: hidden; }
+        
         /* Matrix Noise Texture */
         .glass-panel::before {
             content: "";
@@ -116,6 +139,9 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 35px 60px -15px rgba(0, 0, 0, 0.9);
             border-color: rgba(255, 255, 255, 0.2);
         }
+        
+        /* Im Classic Header wollen wir kein Hover-Transform */
+        #view-classic header.glass-panel:hover { transform: none; background: rgba(255, 255, 255, 0.05); }
 
         .glass-panel > * { position: relative; z-index: 2; }
 
@@ -158,6 +184,26 @@
             box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
         }
 
+        /* Dropdown Menu (Classic) */
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.5rem;
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .group:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #050505; }
@@ -165,479 +211,323 @@
 
 
         /* =========================================
-           THEME: PICTURE GLOW
+           THEME OVERRIDES
            ========================================= */
+        
+        /* ELEGANT */
+        [data-theme="elegant"] body { background: radial-gradient(circle at top, #6b21a8 0%, #1e1b4b 100%); color: #ffffff; }
+        [data-theme="elegant"] #c { display: none !important; } 
+        [data-theme="elegant"] .elegant-bg { display: block; }
+        [data-theme="elegant"] .glass-panel { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(192, 132, 252, 0.2); box-shadow: 0 25px 50px -12px rgba(46, 16, 101, 0.5); }
+        [data-theme="elegant"] .glass-panel::before { display: none; }
+        [data-theme="elegant"] h1, [data-theme="elegant"] h2 { background: linear-gradient(to bottom right, #fff9e6, #ffd700, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        [data-theme="elegant"] .glass-btn, [data-theme="elegant"] button[type="submit"] { background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: #fff; }
+        [data-theme="elegant"] .text-cyan-300 { color: #fbbf24 !important; }
+        [data-theme="elegant"] .ui-badge { background: rgba(88, 28, 135, 0.6); border-color: rgba(216, 180, 254, 0.4); color: #e9d5ff; }
+
+        /* GLOW */
         [data-theme="glow"] body { background-color: #000000; font-family: 'Inter', sans-serif; }
-        /* FIX: Canvas weg! */
         [data-theme="glow"] #c { display: none !important; }
-        [data-theme="glow"] .bg-layer.glow { display: block; }
-        
-        .glow-image {
-            position: absolute; inset: 0; 
-            background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop'); 
-            background-size: cover; background-position: center;
-            filter: brightness(0.6) saturate(1.1) contrast(1.1);
-        }
-        .glow-overlay-inner { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+        [data-theme="glow"] .glow-bg, [data-theme="glow"] .glow-overlay { display: block; }
+        [data-theme="glow"] .glass-panel { border: 2px solid #DC2626; box-shadow: 0 0 50px rgba(220, 38, 38, 0.5); background: linear-gradient(160deg, rgba(20, 20, 20, 0.85) 0%, rgba(5, 5, 5, 0.9) 100%); }
+        [data-theme="glow"] h1 { color: #DC2626; -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1); }
+        [data-theme="glow"] .glass-btn { border: 1px solid #ef4444; color: white; background: linear-gradient(to right, #DC2626, #991b1b) !important; }
+        [data-theme="glow"] .ui-badge { background: rgba(220, 38, 38, 0.6); border-color: #ef4444; }
 
-        [data-theme="glow"] .glass-panel {
-            background: linear-gradient(160deg, rgba(20, 20, 20, 0.85) 0%, rgba(5, 5, 5, 0.9) 100%);
-            border: 2px solid #DC2626; box-shadow: 0 0 50px rgba(220, 38, 38, 0.5), inset 0 0 30px rgba(0, 0, 0, 0.8);
-            border-radius: 16px; backdrop-filter: none;
-        }
-        [data-theme="glow"] .glass-panel::before, [data-theme="glow"] .glass-panel::after { display: none; }
-        [data-theme="glow"] .glass-panel:hover { transform: translateY(-5px); box-shadow: 0 0 60px rgba(220, 38, 38, 0.7), inset 0 0 30px rgba(0, 0, 0, 0.8); }
-        [data-theme="glow"] h1, [data-theme="glow"] h2, [data-theme="glow"] h3 { font-family: 'Oswald', sans-serif; text-transform: uppercase; }
-        [data-theme="glow"] h1 { color: #DC2626; -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1); filter: drop-shadow(0 0 15px rgba(220, 38, 38, 0.8)); letter-spacing: 0.05em; }
-        [data-theme="glow"] .text-cyan-300, [data-theme="glow"] .text-indigo-300, [data-theme="glow"] .text-cyan-400, [data-theme="glow"] .text-indigo-400, [data-theme="glow"] .text-pink-400, [data-theme="glow"] .fa-solid, [data-theme="glow"] .fa-brands { color: #DC2626 !important; filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.8)); }
-        [data-theme="glow"] .glass-btn, [data-theme="glow"] button[type="submit"] {
-            background: linear-gradient(to right, #DC2626, #991b1b) !important; border: 1px solid #ef4444; color: white; font-family: 'Oswald', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; box-shadow: 0 5px 20px rgba(220, 38, 38, 0.4);
-        }
-        [data-theme="glow"] .glass-btn:hover { box-shadow: 0 5px 30px rgba(220, 38, 38, 0.7); transform: translateY(-2px); }
-        [data-theme="glow"] .bg-cyan-500\/10, [data-theme="glow"] .bg-indigo-500\/20, [data-theme="glow"] .bg-cyan-500\/20, [data-theme="glow"] .bg-pink-500\/20, [data-theme="glow"] .bg-emerald-500\/20 { background: transparent !important; border: 1px solid #DC2626 !important; color: #DC2626 !important; font-family: 'Oswald', sans-serif; box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); }
-        [data-theme="glow"] .bg-gradient-to-tr { background: black !important; border: 2px solid #DC2626; box-shadow: 0 0 20px rgba(220, 38, 38, 0.6); }
-        [data-theme="glow"] .glass-input { border: 1px solid rgba(220, 38, 38, 0.4); background: rgba(0,0,0,0.8); }
-        [data-theme="glow"] .glass-input:focus { border-color: #DC2626; box-shadow: 0 0 15px rgba(220, 38, 38, 0.3); }
-        [data-theme="glow"] #current-style-badge { background: rgba(220, 38, 38, 0.6); border-color: #ef4444; color: white; box-shadow: 0 0 15px rgba(220, 38, 38, 0.5); }
-        [data-theme="glow"] #theme-switcher { background: #DC2626; color: white; border-color: #ef4444; box-shadow: 0 0 20px rgba(220, 38, 38, 0.6); }
-
-
-        /* =========================================
-           THEME: ELEGANT GLOW (Adler)
-           ========================================= */
+        /* ADLER */
         [data-theme="adler"] body { background-color: #050505; font-family: 'Inter', sans-serif; }
-        /* FIX: Canvas weg! */
         [data-theme="adler"] #c { display: none !important; }
-        [data-theme="adler"] .bg-layer.adler { display: block; }
-        
-        .adler-image {
-            position: absolute; inset: 0;
-            background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=1920&auto=format&fit=crop'); 
-            background-size: cover; background-position: center; filter: brightness(0.3) contrast(1.2);
-        }
-        .adler-overlay-inner { position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); }
+        [data-theme="adler"] .adler-bg, [data-theme="adler"] .adler-overlay { display: block; }
+        [data-theme="adler"] .glass-panel { background-color: rgba(18, 18, 18, 0.85); border: 1px solid rgba(212, 175, 55, 0.4); }
+        [data-theme="adler"] .glass-btn { border: 1px solid #D4AF37; color: #D4AF37; background: transparent !important; }
+        [data-theme="adler"] h1 { font-family: 'Cinzel', serif; color: #fff; }
+        [data-theme="adler"] .ui-badge { background: rgba(212, 175, 55, 0.2); border-color: #D4AF37; color: #D4AF37; }
 
-        [data-theme="adler"] .glass-panel {
-            background-color: rgba(18, 18, 18, 0.85); border: 1px solid rgba(212, 175, 55, 0.4); box-shadow: 0 0 35px rgba(212, 175, 55, 0.2), 0 0 15px rgba(212, 175, 55, 0.1); backdrop-filter: blur(12px); border-radius: 4px;
-        }
-        [data-theme="adler"] .glass-panel:hover { transform: translateY(-2px); box-shadow: 0 0 45px rgba(212, 175, 55, 0.3); border-color: rgba(212, 175, 55, 0.6); }
-        [data-theme="adler"] .rounded-full, [data-theme="adler"] .rounded-2xl, [data-theme="adler"] .rounded-3xl, [data-theme="adler"] .rounded-xl { border-radius: 2px !important; }
-        [data-theme="adler"] .w-32.h-32.rounded-full, [data-theme="adler"] .w-full.h-full.rounded-full { border-radius: 9999px !important; }
-        [data-theme="adler"] h1, [data-theme="adler"] h2, [data-theme="adler"] h3 { font-family: 'Cinzel', serif; letter-spacing: 0.05em; color: #D4AF37; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); }
-        [data-theme="adler"] h1 { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
-        [data-theme="adler"] .text-cyan-300, [data-theme="adler"] .text-indigo-300, [data-theme="adler"] .text-cyan-400, [data-theme="adler"] .text-indigo-400, [data-theme="adler"] .text-pink-400, [data-theme="adler"] .fa-solid, [data-theme="adler"] .fa-brands { color: #D4AF37 !important; }
-        [data-theme="adler"] .glass-btn, [data-theme="adler"] button[type="submit"] {
-            background: transparent !important; border: 1px solid #D4AF37; color: #D4AF37; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; font-weight: 700; box-shadow: none; animation: none;
-        }
-        [data-theme="adler"] .glass-btn:hover, [data-theme="adler"] button[type="submit"]:hover { background: #D4AF37 !important; color: #000; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); }
-        [data-theme="adler"] .bg-cyan-500\/10, [data-theme="adler"] .bg-indigo-500\/20, [data-theme="adler"] .bg-cyan-500\/20, [data-theme="adler"] .bg-pink-500\/20, [data-theme="adler"] .bg-emerald-500\/20 { background: transparent !important; border: 1px solid #D4AF37 !important; color: #D4AF37 !important; font-family: 'Cinzel', serif; box-shadow: none; }
-        [data-theme="adler"] .bg-gradient-to-tr { background: transparent !important; border: 1px solid #D4AF37; padding: 5px; }
-        [data-theme="adler"] .glass-input { border: 1px solid rgba(212, 175, 55, 0.3); background: rgba(0,0,0,0.6); border-radius: 0; }
-        [data-theme="adler"] .glass-input:focus { border-color: #D4AF37; box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); }
-        [data-theme="adler"] #current-style-badge { background: rgba(212, 175, 55, 0.2); border-color: #D4AF37; color: #D4AF37; }
-        [data-theme="adler"] #theme-switcher { background: #121212; color: #D4AF37; border-color: #D4AF37; }
-
-
-        /* =========================================
-           THEME: GLASS GRADIENT (Praxis)
-           ========================================= */
-        [data-theme="glass"] body {
-            background-color: #0f172a;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
+        /* GLASS */
+        [data-theme="glass"] body { background-color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; }
         [data-theme="glass"] #c { display: none !important; }
-        [data-theme="glass"] .bg-layer.glass { display: block; }
+        [data-theme="glass"] .glass-blob { display: block; }
+        [data-theme="glass"] .glass-panel { background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)); border: 1px solid rgba(255, 255, 255, 0.18); }
+        [data-theme="glass"] .text-cyan-300 { color: #22d3ee !important; }
+        [data-theme="glass"] .ui-badge { background: rgba(6, 182, 212, 0.2); border-color: rgba(6, 182, 212, 0.4); color: #22d3ee; }
 
-        @keyframes float { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(30px, 50px) rotate(10deg); } }
-        
-        .blob { position: absolute; filter: blur(80px); opacity: 0.8; animation: float 10s infinite alternate ease-in-out; }
-        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #4f46e5; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; animation-delay: 0s; }
-        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #06b6d4; border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; animation-delay: -2s; }
-        .blob-3 { top: 40%; left: 40%; width: 300px; height: 300px; background: #ec4899; border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; animation-delay: -4s; opacity: 0.6; }
-
-        [data-theme="glass"] .glass-panel {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            border-left: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-            border-radius: 2.5rem;
-        }
-        [data-theme="glass"] .glass-panel::before {
-            content: ''; position: absolute; inset: 0; border-radius: inherit;
-            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 40%);
-            pointer-events: none; z-index: 1; opacity: 1; display: block;
-        }
-        [data-theme="glass"] .glass-panel::after { display: none; }
-        
-        [data-theme="glass"] .glass-panel:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
-        }
-
-        [data-theme="glass"] .glass-btn,
-        [data-theme="glass"] button[type="submit"] {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05)) !important;
-            backdrop-filter: blur(20px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            color: #fff;
-        }
-        [data-theme="glass"] .glass-btn:hover,
-        [data-theme="glass"] button[type="submit"]:hover {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1)) !important;
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3), 0 0 15px rgba(255,255,255,0.2);
-            border-color: rgba(255, 255, 255, 0.6);
-        }
-
-        [data-theme="glass"] .text-cyan-300,
-        [data-theme="glass"] .text-cyan-400,
-        [data-theme="glass"] .text-emerald-300 { color: #22d3ee !important; }
-        [data-theme="glass"] .text-indigo-300, 
-        [data-theme="glass"] .text-indigo-400 { color: #818cf8 !important; }
-        [data-theme="glass"] .text-pink-400 { color: #ec4899 !important; }
-
-        [data-theme="glass"] .bg-cyan-500\/10,
-        [data-theme="glass"] .bg-indigo-500\/20,
-        [data-theme="glass"] .bg-cyan-500\/20,
-        [data-theme="glass"] .bg-pink-500\/20,
-        [data-theme="glass"] .bg-emerald-500\/20 {
-            background-color: rgba(6, 182, 212, 0.15) !important;
-            border-color: rgba(6, 182, 212, 0.3) !important;
-            color: #a5f3fc !important;
-            backdrop-filter: blur(5px);
-        }
-        
-        [data-theme="glass"] .bg-emerald-500 {
-            background-color: #22c55e !important;
-            box-shadow: 0 0 10px rgba(34,197,94,0.5);
-        }
-        
-        [data-theme="glass"] .glass-input {
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-        }
-        [data-theme="glass"] .glass-input:focus {
-            border-color: rgba(255, 255, 255, 0.5);
-            background: rgba(0, 0, 0, 0.4);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 0 15px rgba(255,255,255,0.1);
-        }
-        [data-theme="glass"] #current-style-badge { background: rgba(6, 182, 212, 0.2); border-color: rgba(6, 182, 212, 0.4); color: #22d3ee; }
-        [data-theme="glass"] #theme-switcher { background: #0f172a; color: #22d3ee; border-color: #22d3ee; }
-
-
-        /* =========================================
-           THEME: PICTURE GLASS (Neu)
-           ========================================= */
-        [data-theme="picglass"] body {
-            background-color: #f0f0f0; /* Hell als Fallback */
-            color: #ffffff;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
+        /* PICGLASS */
+        [data-theme="picglass"] body { background-color: #f0f0f0; }
         [data-theme="picglass"] #c { display: none !important; }
         [data-theme="picglass"] .bg-layer.picglass { display: block; }
-
-        .picglass-image {
-            position: absolute; inset: 0;
-            background-image: url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1920&auto=format&fit=crop'); 
-            background-size: cover; background-position: center;
-            /* Nur leicht abgedunkelt - sehr helles, klares Bild */
-            filter: brightness(0.85); 
-        }
-        .picglass-overlay-inner {
-            position: absolute; inset: 0;
-            background: rgba(0, 0, 0, 0.1); /* Hauchdünner Overlay */
-        }
-
-        [data-theme="picglass"] .glass-panel {
-            /* EXTREM GLASIG */
-            background: rgba(255, 255, 255, 0.1); 
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-            border-radius: 2.5rem;
-        }
-        
-        [data-theme="picglass"] .glass-panel:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.6);
-            transform: translateY(-3px);
-        }
-        
+        [data-theme="picglass"] .glass-panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.4); }
         [data-theme="picglass"] .glass-panel::before { display: none; }
-        [data-theme="picglass"] .glass-panel::after { display: none; }
+        [data-theme="picglass"] h1, [data-theme="picglass"] p { text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        [data-theme="picglass"] .ui-badge { background: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.3); }
 
-        /* Text Shadows für Lesbarkeit auf hellem Grund */
-        [data-theme="picglass"] h1, 
-        [data-theme="picglass"] h2, 
-        [data-theme="picglass"] p, 
-        [data-theme="picglass"] div {
-            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-
-        [data-theme="picglass"] button[type="submit"],
-        [data-theme="picglass"] .glass-btn {
-            background: rgba(255, 255, 255, 0.2) !important;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            color: #fff;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        [data-theme="picglass"] .glass-btn:hover {
-            background: rgba(255, 255, 255, 0.3) !important;
-            border-color: #fff;
-        }
-
-        /* Buttons & Badges Anpassung */
-        [data-theme="picglass"] .bg-cyan-500\/10,
-        [data-theme="picglass"] .bg-indigo-500\/20,
-        [data-theme="picglass"] .bg-cyan-500\/20,
-        [data-theme="picglass"] .bg-pink-500\/20,
-        [data-theme="picglass"] .bg-emerald-500\/20 {
-            background-color: rgba(255, 255, 255, 0.15) !important;
-            border-color: rgba(255, 255, 255, 0.4) !important;
-            color: #fff !important;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-        }
-        
-        [data-theme="picglass"] .text-cyan-300, 
-        [data-theme="picglass"] .text-indigo-300, 
-        [data-theme="picglass"] .text-pink-300,
-        [data-theme="picglass"] .text-emerald-300 {
-            color: #fff !important; /* Icons weiß */
-        }
-
-        [data-theme="picglass"] .glass-input {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        [data-theme="picglass"] .glass-input:focus {
-            background: rgba(0, 0, 0, 0.3);
-            border-color: #fff;
-        }
-        /* Top Right Button für Picture Glass besser sichtbar machen */
-        [data-theme="picglass"] #current-style-badge {
-            background: rgba(0, 0, 0, 0.4); /* Dunklerer Hintergrund */
-            border-color: rgba(255, 255, 255, 0.3);
-            color: #fff;
-        }
-        [data-theme="picglass"] #theme-switcher {
-            background: rgba(255, 255, 255, 0.8);
-            color: #000;
-            border-color: #fff;
-        }
+        /* ANIMATIONS & ASSETS */
+        .elegant-bg .purple-flow { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at center, rgba(88, 28, 135, 0.15) 0%, rgba(30, 0, 60, 0.08) 30%, rgba(0, 0, 0, 0) 70%); filter: blur(100px); animation: moveFlow 30s infinite alternate ease-in-out; }
+        .glow-bg .glow-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.6) saturate(1.1); }
+        .adler-bg .adler-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.3) contrast(1.2); }
+        .glass-blob { position: fixed; filter: blur(80px); z-index: -1; opacity: 0.8; animation: float 10s infinite alternate ease-in-out; }
+        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #4f46e5; }
+        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #06b6d4; }
+        .picglass-image { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1920&auto=format&fit=crop'); background-size: cover; filter: brightness(0.85); }
 
     </style>
 </head>
-<body data-theme="original" class="antialiased min-h-screen flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 selection:bg-cyan-500 selection:text-white">
+<body data-theme="original" data-layout="card" class="antialiased min-h-screen selection:bg-cyan-500 selection:text-white">
 
-    <!-- PICTURE GLOW Special Backgrounds -->
+    <!-- BACKGROUND LAYERS -->
+    <div class="bg-layer elegant">
+        <div class="purple-flow"></div>
+    </div>
     <div class="bg-layer glow">
         <div class="glow-image"></div>
-        <div class="glow-overlay-inner"></div>
+        <div class="bg-black/50 absolute inset-0"></div>
     </div>
-
-    <!-- ELEGANT GLOW (ADLER) Special Backgrounds -->
     <div class="bg-layer adler">
         <div class="adler-image"></div>
-        <div class="adler-overlay-inner"></div>
+        <div class="bg-radial-black absolute inset-0"></div>
     </div>
-
-    <!-- GLASS GRADIENT Special Backgrounds -->
     <div class="bg-layer glass">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
+        <div class="glass-blob blob-1"></div>
+        <div class="glass-blob blob-2"></div>
     </div>
-
-    <!-- PICTURE GLASS Special Backgrounds -->
     <div class="bg-layer picglass">
         <div class="picglass-image"></div>
-        <div class="picglass-overlay-inner"></div>
+        <div class="bg-black/10 absolute inset-0"></div>
     </div>
 
     <!-- 3D Particle Background Canvas (Matrix) -->
     <canvas id="c"></canvas>
 
-    <!-- Main Content Container -->
-    <main class="w-full max-w-2xl space-y-6 relative z-10">
-
-        <!-- 1. MAIN IDENTITY CARD -->
-        <div class="glass-panel rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left relative group">
-            
-            <div class="relative shrink-0">
-                <div class="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-cyan-500/80 to-indigo-500/80 shadow-lg shadow-indigo-500/20">
-                    <!-- Profile Icon Placeholder -->
-                    <div class="w-full h-full rounded-full bg-slate-900/90 backdrop-blur-sm border-2 border-white/10 flex items-center justify-center text-slate-300 text-5xl md:text-6xl shadow-inner">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                </div>
-                <div class="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 rounded-full border-4 border-[#050505] shadow-lg shadow-emerald-500/30" title="Verfügbar"></div>
-            </div>
-
-            <div class="flex-1">
-                <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-bold tracking-wide uppercase mb-3 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                    Rechtsanwalt & Notar
-                </div>
-                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight drop-shadow-md">Dr. Justus A. Wegner</h1>
-                <p class="text-slate-300 text-sm md:text-base leading-relaxed mb-6 font-medium">
-                    Spezialisiert auf Medienrecht, IP & digitales Wirtschaftsrecht. Ich schütze Ihr geistiges Eigentum und Ihre digitale Reputation.
-                </p>
-                
-                <div class="flex flex-wrap justify-center md:justify-start gap-3">
-                    <!-- Call Button with Animation -->
-                    <a href="tel:0123456789" class="glass-btn px-6 py-2.5 rounded-full text-sm font-semibold text-white flex items-center gap-2 call-btn-anim">
-                        <i class="fa-solid fa-phone-volume"></i>
-                        Jetzt anrufen
-                    </a>
-                    <a href="#" class="glass-btn px-4 py-2.5 rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors" title="vCard Download">
-                        <i class="fa-solid fa-address-card"></i>
-                    </a>
-                    <a href="#" class="glass-btn px-4 py-2.5 rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors" title="LinkedIn">
-                        <i class="fa-brands fa-linkedin-in"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 2. STATUS / INFO BAR -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition-colors cursor-default">
-                <div class="text-cyan-400 text-lg mb-1 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"><i class="fa-solid fa-location-dot"></i></div>
-                <div class="text-xs text-slate-300 uppercase font-bold tracking-wider">Standort</div>
-                <div class="text-sm font-semibold text-white mt-1">Musterstraße 1<br>12345 Musterstadt</div>
-            </div>
-            <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition-colors cursor-default">
-                <div class="text-indigo-400 text-lg mb-1 drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]"><i class="fa-solid fa-scale-balanced"></i></div>
-                <div class="text-xs text-slate-300 uppercase font-bold tracking-wider">Fokus</div>
-                <div class="text-sm font-semibold text-white mt-1">Digitalrecht</div>
-            </div>
-            <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition-colors cursor-default col-span-2 md:col-span-1">
-                <div class="text-pink-400 text-lg mb-1 drop-shadow-[0_0_8px_rgba(244,114,182,0.5)]"><i class="fa-solid fa-clock"></i></div>
-                <div class="text-xs text-slate-300 uppercase font-bold tracking-wider">Erreichbarkeit</div>
-                <div class="text-sm font-semibold text-white mt-1">Mo-Fr 09:00 - 18:00</div>
-            </div>
-        </div>
-
-        <!-- 3. SERVICES GRID -->
-        <div class="glass-panel rounded-[2.5rem] p-8">
-            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm border border-white/10"><i class="fa-solid fa-layer-group"></i></span>
-                Rechtsgebiete
-            </h2>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- Service 1 -->
-                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-300 group-hover:text-indigo-200 transition-colors border border-indigo-500/10">
-                            <i class="fa-solid fa-copyright"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
-                    </div>
-                    <h3 class="font-bold text-white mb-1">Urheberrecht</h3>
-                    <p class="text-xs text-slate-300 leading-relaxed font-medium">Schutz kreativer Werke, Lizenzen und Abwehr von Abmahnungen.</p>
-                </div>
-
-                <!-- Service 2 -->
-                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="p-2 bg-cyan-500/20 rounded-lg text-cyan-300 group-hover:text-cyan-200 transition-colors border border-cyan-500/10">
-                            <i class="fa-solid fa-globe"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
-                    </div>
-                    <h3 class="font-bold text-white mb-1">IT-Recht & Datenschutz</h3>
-                    <p class="text-xs text-slate-300 leading-relaxed font-medium">DSGVO-Compliance, AGB-Erstellung und Softwareverträge.</p>
-                </div>
-
-                <!-- Service 3 -->
-                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="p-2 bg-pink-500/20 rounded-lg text-pink-300 group-hover:text-pink-200 transition-colors border border-pink-500/10">
-                            <i class="fa-solid fa-bullhorn"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
-                    </div>
-                    <h3 class="font-bold text-white mb-1">Medienrecht</h3>
-                    <p class="text-xs text-slate-300 leading-relaxed font-medium">Pressefreiheit, Persönlichkeitsrechte und Reputationsschutz.</p>
-                </div>
-
-                <!-- Service 4 -->
-                <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-lg shadow-black/5 hover:shadow-black/20">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="p-2 bg-emerald-500/20 rounded-lg text-emerald-300 group-hover:text-emerald-200 transition-colors border border-emerald-500/10">
-                            <i class="fa-solid fa-file-contract"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-right -rotate-45 text-slate-500 text-xs group-hover:text-white group-hover:rotate-0 transition-all duration-300"></i>
-                    </div>
-                    <h3 class="font-bold text-white mb-1">Start-up Beratung</h3>
-                    <p class="text-xs text-slate-300 leading-relaxed font-medium">Gründung, Finanzierungsrunden und Mitarbeiterbeteiligungen.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. CONTACT SECTION -->
-        <div id="kontakt" class="glass-panel rounded-[2.5rem] p-8 md:p-10">
-            <h2 class="text-xl font-bold text-white mb-6 text-center">Mandat anfragen</h2>
-            
-            <form onsubmit="event.preventDefault(); alert('Dies ist eine Demo. Die Nachricht wurde nicht gesendet.');" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-bold text-slate-300 ml-2 tracking-wide uppercase">Name</label>
-                        <input type="text" placeholder="Ihr Name" class="w-full px-4 py-3 rounded-xl glass-input placeholder-slate-400 focus:ring-2 focus:ring-cyan-500/50 transition-all font-medium">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-bold text-slate-300 ml-2 tracking-wide uppercase">E-Mail</label>
-                        <input type="email" placeholder="ihre@email.de" class="w-full px-4 py-3 rounded-xl glass-input placeholder-slate-400 focus:ring-2 focus:ring-cyan-500/50 transition-all font-medium">
-                    </div>
-                </div>
-                
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-300 ml-2 tracking-wide uppercase">Anliegen</label>
-                    <textarea rows="4" placeholder="Beschreiben Sie kurz Ihr rechtliches Anliegen..." class="w-full px-4 py-3 rounded-xl glass-input placeholder-slate-400 focus:ring-2 focus:ring-cyan-500/50 transition-all resize-none font-medium"></textarea>
-                </div>
-
-                <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/30 transition-all transform hover:scale-[1.02] border border-white/10 relative overflow-hidden">
-                    <span class="relative z-10">Nachricht senden</span>
-                    <div class="absolute inset-0 bg-white/20 blur-md opacity-0 hover:opacity-100 transition-opacity"></div>
-                </button>
-            </form>
-
-            <div class="mt-8 pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-4 font-medium">
-                <p>&copy; 2024 Dr. Justus A. Wegner</p>
-                <div class="flex gap-4">
-                    <a href="#" class="hover:text-white transition-colors">Impressum</a>
-                    <a href="#" class="hover:text-white transition-colors">Datenschutz</a>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- OBEN RECHTS: ANZEIGE DES AKTUELLEN STILS (Klickbar zum Wechseln) -->
-    <button id="current-style-badge">
-        <i class="fa-solid fa-palette mr-2"></i> Stil: Matrix
-    </button>
+    <!-- UI CONTROLS (Top Right) -->
+    <div id="ui-controls">
+        <button id="current-layout-badge" class="ui-badge">
+            <i class="fa-solid fa-layer-group mr-2"></i> Layout: Card
+        </button>
+        <button id="current-style-badge" class="ui-badge">
+            <i class="fa-solid fa-palette mr-2"></i> Stil: Matrix
+        </button>
+    </div>
 
     <!-- UNTEN RECHTS: THEME SWITCHER ICON -->
-    <div id="theme-switcher" title="Design wechseln">
-        <i class="fa-solid fa-rotate"></i>
+    <div id="theme-switcher" class="glass-btn w-14 h-14 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-white/20 transition">
+        <i class="fa-solid fa-rotate text-xl"></i>
     </div>
+
+
+    <!-- ==============================================
+         VIEW 1: CARD-BASED LAYOUT (ORIGINAL)
+         ============================================== -->
+    <div id="view-card" class="flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
+        <main class="w-full max-w-2xl space-y-6">
+            <!-- 1. MAIN IDENTITY CARD -->
+            <div class="glass-panel rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                <div class="relative shrink-0">
+                    <div class="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-cyan-500/80 to-indigo-500/80 shadow-lg">
+                        <div class="w-full h-full rounded-full bg-slate-900/90 backdrop-blur-sm flex items-center justify-center text-slate-300 text-5xl md:text-6xl">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 rounded-full border-4 border-[#050505] shadow-lg" title="Verfügbar"></div>
+                </div>
+                <div class="flex-1">
+                    <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-bold uppercase mb-3">
+                        Rechtsanwalt & Notar
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Dr. Justus A. Wegner</h1>
+                    <p class="text-slate-300 text-sm md:text-base leading-relaxed mb-6 font-medium">
+                        Spezialisiert auf Medienrecht, IP & digitales Wirtschaftsrecht. Ich schütze Ihr geistiges Eigentum.
+                    </p>
+                    <div class="flex flex-wrap justify-center md:justify-start gap-3">
+                        <a href="tel:0123456789" class="glass-btn px-6 py-2.5 rounded-full text-sm font-semibold text-white flex items-center gap-2 call-btn-anim">
+                            <i class="fa-solid fa-phone-volume"></i> Jetzt anrufen
+                        </a>
+                        <a href="#" class="glass-btn px-4 py-2.5 rounded-full text-sm font-semibold text-white/80 hover:text-white"><i class="fa-brands fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. STATUS / INFO -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition cursor-default">
+                    <div class="text-cyan-400 text-lg mb-1"><i class="fa-solid fa-location-dot"></i></div>
+                    <div class="text-xs text-slate-300 uppercase font-bold">Standort</div>
+                    <div class="text-sm font-semibold text-white mt-1">Musterstraße 1<br>12345 Musterstadt</div>
+                </div>
+                <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition cursor-default">
+                    <div class="text-indigo-400 text-lg mb-1"><i class="fa-solid fa-scale-balanced"></i></div>
+                    <div class="text-xs text-slate-300 uppercase font-bold">Fokus</div>
+                    <div class="text-sm font-semibold text-white mt-1">Digitalrecht</div>
+                </div>
+                <div class="glass-panel rounded-3xl p-4 text-center hover:bg-white/5 transition cursor-default col-span-2 md:col-span-1">
+                    <div class="text-pink-400 text-lg mb-1"><i class="fa-solid fa-clock"></i></div>
+                    <div class="text-xs text-slate-300 uppercase font-bold">Erreichbarkeit</div>
+                    <div class="text-sm font-semibold text-white mt-1">Mo-Fr 09:00 - 18:00</div>
+                </div>
+            </div>
+
+            <!-- 3. SERVICES -->
+            <div class="glass-panel rounded-[2.5rem] p-8">
+                <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm"><i class="fa-solid fa-layer-group"></i></span>
+                    Rechtsgebiete
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-300"><i class="fa-solid fa-copyright"></i></div>
+                        </div>
+                        <h3 class="font-bold text-white mb-1">Urheberrecht</h3>
+                        <p class="text-xs text-slate-300">Schutz kreativer Werke, Lizenzen und Abwehr von Abmahnungen.</p>
+                    </div>
+                    <div class="group p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="p-2 bg-cyan-500/20 rounded-lg text-cyan-300"><i class="fa-solid fa-globe"></i></div>
+                        </div>
+                        <h3 class="font-bold text-white mb-1">IT-Recht</h3>
+                        <p class="text-xs text-slate-300">DSGVO-Compliance, AGB-Erstellung und Softwareverträge.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. CONTACT -->
+            <div class="glass-panel rounded-[2.5rem] p-8 md:p-10">
+                <h2 class="text-xl font-bold text-white mb-6 text-center">Mandat anfragen</h2>
+                <form onsubmit="event.preventDefault(); alert('Demo Nachricht');" class="space-y-4">
+                    <input type="email" placeholder="E-Mail" class="w-full px-4 py-3 rounded-xl glass-input">
+                    <textarea rows="4" placeholder="Anliegen..." class="w-full px-4 py-3 rounded-xl glass-input"></textarea>
+                    <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-bold shadow-lg hover:scale-[1.02] transition">Senden</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ==============================================
+         VIEW 2: CLASSIC LAYOUT (Header, Hero, Footer)
+         ============================================== -->
+    <div id="view-classic" class="w-full min-h-screen flex flex-col">
+        
+        <!-- Classic Header -->
+        <header class="glass-panel !rounded-none !border-x-0 !border-t-0 fixed top-0 w-full z-50 transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <!-- Logo -->
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold">W</div>
+                        <span class="text-xl font-bold tracking-tight text-white">Dr. Wegner</span>
+                    </div>
+
+                    <!-- Nav -->
+                    <nav class="hidden md:flex gap-4">
+                        <a href="#" class="glass-btn px-4 py-2 rounded-lg text-sm font-medium text-white hover:text-cyan-300">Kanzlei</a>
+                        
+                        <!-- Dropdown Container -->
+                        <div class="relative group">
+                            <button class="glass-btn px-4 py-2 rounded-lg text-sm font-medium text-white hover:text-cyan-300 flex items-center gap-2">
+                                Leistungen <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </button>
+                            <!-- Dropdown Menu -->
+                            <div class="dropdown-menu glass-panel !bg-black/90 !border-white/10 p-2">
+                                <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md">Urheberrecht</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md">Medienrecht</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md">IT-Recht</a>
+                            </div>
+                        </div>
+
+                        <a href="#kontakt-classic" class="glass-btn px-4 py-2 rounded-lg text-sm font-medium text-white hover:text-cyan-300">Kontakt</a>
+                    </nav>
+
+                    <!-- CTA Button Header -->
+                    <a href="tel:0123456789" class="hidden md:flex glass-btn px-5 py-2 rounded-full text-sm font-bold text-white border-cyan-500/50 hover:bg-cyan-500/20 call-btn-anim">
+                        <i class="fa-solid fa-phone mr-2"></i> Anrufen
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Classic Hero -->
+        <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-4 flex flex-col items-center text-center">
+            <div class="inline-block px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-cyan-300 text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-md">
+                Kanzlei für Digitalrecht
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight max-w-4xl leading-tight">
+                Rechtssicherheit in der <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">digitalen Welt.</span>
+            </h1>
+            <p class="text-slate-300 text-lg md:text-xl max-w-2xl mb-10 leading-relaxed">
+                Wir schützen Ihr geistiges Eigentum und Ihre Reputation. Professionelle Beratung für Unternehmen, Start-ups und Kreative.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button class="px-8 py-4 rounded-full bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-bold text-lg shadow-lg hover:scale-105 transition-transform">
+                    Mandat anfragen
+                </button>
+                <button class="px-8 py-4 rounded-full glass-btn text-white font-bold text-lg hover:bg-white/10">
+                    Mehr erfahren
+                </button>
+            </div>
+        </section>
+
+        <!-- Classic Grid (Wider) -->
+        <section class="max-w-7xl mx-auto px-4 py-16 w-full">
+            <h2 class="text-3xl font-bold text-white mb-10 text-center">Unsere Expertise</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Service Items reused style logic but adapted layout -->
+                <div class="glass-panel p-8 rounded-2xl hover:translate-y-[-5px] transition duration-300">
+                    <div class="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-300 mb-4 text-2xl"><i class="fa-solid fa-copyright"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">Urheberrecht</h3>
+                    <p class="text-slate-400">Umfassender Schutz für Ihre kreativen Werke und Durchsetzung Ihrer Rechte.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl hover:translate-y-[-5px] transition duration-300">
+                    <div class="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-300 mb-4 text-2xl"><i class="fa-solid fa-globe"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">IT & Datenschutz</h3>
+                    <p class="text-slate-400">Rechtssichere Websites, AGBs und Datenschutzkonzepte für Ihr Business.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl hover:translate-y-[-5px] transition duration-300">
+                    <div class="w-12 h-12 bg-pink-500/20 rounded-lg flex items-center justify-center text-pink-300 mb-4 text-2xl"><i class="fa-solid fa-bullhorn"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">Medienrecht</h3>
+                    <p class="text-slate-400">Schutz gegen Rufschädigung und rechtliche Begleitung von PR-Kampagnen.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Classic Footer -->
+        <footer class="mt-auto border-t border-white/10 bg-black/20 backdrop-blur-lg">
+            <div class="max-w-7xl mx-auto px-4 py-12">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <div class="col-span-1 md:col-span-2">
+                        <h4 class="text-white font-bold text-lg mb-4">Dr. Justus A. Wegner</h4>
+                        <p class="text-slate-400 text-sm max-w-xs">Ihre spezialisierte Kanzlei für das digitale Zeitalter. Wir verbinden juristische Exzellenz mit technischem Verständnis.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-bold mb-4">Kontakt</h4>
+                        <ul class="space-y-2 text-sm text-slate-400">
+                            <li>Musterstraße 1</li>
+                            <li>12345 Musterstadt</li>
+                            <li>info@kanzlei-wegner.de</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-bold mb-4">Rechtliches</h4>
+                        <ul class="space-y-2 text-sm text-slate-400">
+                            <li><a href="#" class="hover:text-white">Impressum</a></li>
+                            <li><a href="#" class="hover:text-white">Datenschutz</a></li>
+                            <li><a href="#" class="hover:text-white">AGB</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="border-t border-white/5 pt-8 text-center text-xs text-slate-500">
+                    &copy; 2025 Dr. Justus A. Wegner. Alle Rechte vorbehalten.
+                </div>
+            </div>
+        </footer>
+    </div>
+
 
     <script>
     // ---------------------------------------------------
-    // THEME SWITCHER LOGIK
+    // STATE MANAGEMENT
     // ---------------------------------------------------
     const themes = [
         { id: 'original', name: 'Matrix' },
+        { id: 'elegant',  name: 'Elegant' },
         { id: 'glow',     name: 'Picture Glow' },
         { id: 'adler',    name: 'Elegant Glow' },
         { id: 'glass',    name: 'Glass Gradient' },
@@ -645,23 +535,30 @@
     ];
     
     let currentThemeIndex = 0;
+    let currentLayout = 'card'; // 'card' or 'classic'
     
-    const body = document.body;
+    // UI References
+    const layoutBtn = document.getElementById('current-layout-badge');
+    const styleBtn = document.getElementById('current-style-badge');
     const switcherBtn = document.getElementById('theme-switcher');
-    const badgeBtn = document.getElementById('current-style-badge');
+    const canvas = document.getElementById('c');
 
-    // Funktion zum Aktualisieren der UI
-    function updateThemeUI() {
+    // ---------------------------------------------------
+    // FUNCTIONS
+    // ---------------------------------------------------
+
+    function updateUI() {
         const theme = themes[currentThemeIndex];
         
-        // 1. Data-Attribute am Body setzen
-        body.setAttribute('data-theme', theme.id);
+        // Update Attributes
+        document.body.setAttribute('data-theme', theme.id);
+        document.body.setAttribute('data-layout', currentLayout);
         
-        // 2. Text im Badge oben rechts aktualisieren
-        badgeBtn.innerHTML = `<i class="fa-solid fa-palette mr-2"></i> Stil: ${theme.name}`;
+        // Update Text
+        styleBtn.innerHTML = `<i class="fa-solid fa-palette mr-2"></i> Stil: ${theme.name}`;
+        layoutBtn.innerHTML = `<i class="fa-solid fa-layer-group mr-2"></i> Layout: ${currentLayout === 'card' ? 'Card' : 'Classic'}`;
         
-        // 3. Canvas (Matrix) Explizit steuern
-        const canvas = document.getElementById('c');
+        // Canvas Control (Only for Matrix Style)
         if (theme.id === 'original') {
             canvas.style.display = 'block';
         } else {
@@ -669,43 +566,48 @@
         }
     }
 
+    // Toggle Style
     function nextTheme() {
         currentThemeIndex = (currentThemeIndex + 1) % themes.length;
-        updateThemeUI();
+        updateUI();
     }
 
-    // Beide Buttons schalten zum nächsten Theme weiter
-    switcherBtn.addEventListener('click', nextTheme);
-    badgeBtn.addEventListener('click', nextTheme);
+    // Toggle Layout
+    function toggleLayout() {
+        currentLayout = currentLayout === 'card' ? 'classic' : 'card';
+        updateUI();
+    }
 
-    // Initiale Anzeige
-    updateThemeUI();
+    // ---------------------------------------------------
+    // EVENT LISTENERS
+    // ---------------------------------------------------
+    layoutBtn.addEventListener('click', toggleLayout);
+    styleBtn.addEventListener('click', nextTheme);
+    switcherBtn.addEventListener('click', nextTheme); // Bottom button switches style
+
+    // Init
+    updateUI();
 
 
     // ---------------------------------------------------
-    // CANVAS HINTERGRUND (Original Code)
+    // CANVAS ANIMATION (Matrix)
     // ---------------------------------------------------
     (function() {
-        const canvas = document.getElementById('c');
         const ctx = canvas.getContext('2d');
-
         let w, h;
         
         function resize() {
           w = canvas.width = window.innerWidth;
           h = canvas.height = window.innerHeight;
         }
-        
         window.addEventListener('resize', resize);
         resize();
 
-        // CONFIG
         const POINTS = 2500; 
         const DEPTH = 1000;  
         const FOV = 400;     
         const WAVE_SPEED = 0.002; 
 
-        // PARTICLES INIT
         const particles = [];
         for (let i = 0; i < POINTS; i++) {
           particles.push({
@@ -717,23 +619,14 @@
           });
         }
 
-        // PROJEKTION
         function project(p) {
           const scale = FOV / (FOV + p.z);
-          return {
-            x: p.x, 
-            y: p.y,
-            r: scale * 4.5, 
-            a: Math.min(1, scale * 1.5) 
-          };
+          return { x: p.x, y: p.y, r: scale * 4.5, a: Math.min(1, scale * 1.5) };
         }
 
-        // ANIMATION
         let tick = 0;
-
         function animate() {
-          // CHECK: Wenn das Theme NICHT 'original' (Matrix) ist,
-          // dann lösche den Canvas und zeichne NICHTS. 
+          // Check Theme for Performance
           const currentTheme = document.body.getAttribute('data-theme');
           if (currentTheme && currentTheme !== 'original') {
               ctx.clearRect(0, 0, w, h);
@@ -741,34 +634,25 @@
               return;
           }
 
-          // Schwarzer Schleier für Trails
           ctx.fillStyle = 'rgba(5, 5, 5, 0.25)'; 
           ctx.fillRect(0, 0, w, h);
-          
           ctx.globalCompositeOperation = 'lighter';
 
           tick += WAVE_SPEED;
 
           for (const p of particles) {
-            // Bewegung
             p.x += Math.cos(tick + p.offset) * 0.5;
-
-            // Wellen-Berechnung
             const waveX = Math.sin((p.x * 0.002) + tick * 2 + p.offset * 0.2);
             const waveZ = Math.cos((p.z * 0.003) + tick + p.offset);
-            
             const amplitude = 150 + (Math.sin(tick * 0.5) * 50); 
-            
             p.y = (h / 2) + (waveX + waveZ) * amplitude;
 
-            // Loop Logic
             if (p.x < -100) p.x = w + 100;
             if (p.x > w + 100) p.x = -100;
             if (p.z < 0) p.z = DEPTH; 
             if (p.z > DEPTH) p.z = 0;
 
             const pr = project(p);
-            
             if (pr.r > 0) {
                 ctx.beginPath();
                 ctx.fillStyle = `rgba(0, 255, 255, ${pr.a})`;
@@ -776,12 +660,9 @@
                 ctx.fill();
             }
           }
-
           ctx.globalCompositeOperation = 'source-over';
-          
           requestAnimationFrame(animate);
         }
-
         animate();
     })();
     </script>
